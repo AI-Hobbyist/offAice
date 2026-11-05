@@ -1,5 +1,7 @@
 # Agent Handoff
 
+最新任务：MCP 裸命令启动修复已完成并推送，交付与验证见文末 2026-11-05 MCP 直接输入命令名称记录。下文 M1–M4 原始交付哈希为历史记录；当前绿色包以文末为准。最终收尾文档提交请以 git log 为准。
+
 ## 当前任务最终状态
 
 MCP 支持计划 M1–M4 已完成，按顺序每阶段验证、单独提交并推送。绿色 ZIP 已生成并通过最终解压程序的真实 Windows 窗口验收。无剩余实施任务，无实际阻碍；人工验收 MANUAL/PENDING。
@@ -60,4 +62,4 @@ ZCode 暂不支持，其他 ACP 的 HTTP 需声明能力；旧 HTTP+SSE 不在�
 
 验证：16/16 回归测试、tsc、生产构建 PASS；真实 Windows 窗口添加裸命令 mcp-ui-echo 并连接 PASS（隔离 nvm、无外置 Node，使用应用运行时）。实际 codegraph / minecraft-dev-mcp 裸命令经诊断与正式执行映射均连接成功，分别 1/21 工具；只读取工具清单。截图中文正常。使用 formatter 的首次本地路径不存在，改用 npm 缓存的 prettier 后 PASS。
 
-当前 main；本次修复待收尾提交、推送与新版绿色包交付。旧绿色包仍是 bf733bd，不含本次修复；将保留为 pre-command-fix 备份。无剩余代码实施，人工验收 MANUAL/PENDING。
+当前 main；修复提交 0113b966e50bf83f052c78c64cedcd20752ed111 已推送 origin/main。新版绿色包已完成，源工作区干净；最终解压 AIROOM.exe 的真实 Windows MCP UI PASS，packaged=true，visible=true，中文正常。7560 个文件哈希与 171 个依赖校验通过。新版 ZIP SHA256 fdb340a7664472cd936d3506d99caf12afcc02624e2a3616e6d965473240f9e3，大小 172646596 字节。路径 release/AIROOM-0.1.0-Windows-x64-Green.zip；旧包/摘要/收据已保存为 release/pre-command-fix-*。无剩余实施，无实际阻碍；用户人工验收 MANUAL/PENDING。
