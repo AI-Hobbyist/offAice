@@ -28,7 +28,7 @@ export function runtimeFingerprint(ctx: AdapterContext, files: string[] = [], ex
     write: ctx.session.writeMode, conversation: ctx.conversation, roomSpeech:plainRoomSpeech(ctx), roomFiles:roomProjectFiles(ctx), autoApprove: ctx.session.autoApprove, permissions: id==='deepseek'?undefined:ctx.settings.permissions[id],
     model: ctx.settings.models[id], effort: ctx.settings.efforts[id], persona: ctx.persona, agentInstructions: ctx.agentInstructions,
     network: [ctx.settings.networkMode, ctx.settings.proxyUrl], dsh: [ctx.settings.dshProfile, ctx.settings.deepseekBaseUrl],
-    environment, mcp: mcpFingerprint(ctx.mcp ?? []), files: [...new Set([...manifests,...authFiles,...configFiles])].map(fileStamp), extra };
+    environment, roomMcpEnabled: ctx.roomMcpEnabled === true, mcp: mcpFingerprint(ctx.mcp ?? []), files: [...new Set([...manifests,...authFiles,...configFiles])].map(fileStamp), extra };
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }
 

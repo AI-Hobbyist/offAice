@@ -789,6 +789,7 @@ export class Engine {
         return data.overview.stage?.leadMemberId ?? data.flow?.leadMemberId;
       },
       projectFiles: () => this.projectRoomDirectory(roomId),
+      mcpEnabled: () => this.store.currentRoomThread(roomId).mcpEnabled === true,
       interruptAndWait: () =>
         this.rooms.run(roomId, async () => {
           const running = this.roomRunning;
@@ -2887,6 +2888,25 @@ export class Engine {
       }
       case "room.get":
         return this.store.roomView(this.roomId);
+      case "room.mcp.save": {
+        if (!this.roomId.startsWith('project:')) {
+          throw new Error('仅项目会议可授权 MCP。');
+        }
+        if (typeof params.enabled !== 'boolean' || (params.enabled && params.confirm !== true)) {
+          throw new Error('请确认外部 MCP 的运行权限。');
+        }
+        if (this.roomStore.roomState().active) {
+          throw new Error('请先结束当前发言再更改会议 MCP。');
+        }
+        const thread = this.roomStore.currentRoomThread();
+        this.roomStore.put('room_threads', thread.id, { ...thread, mcpEnabled: params.enabled });
+        await this.roomRuntimes.invalidate(
+          key => this.store.get<Session>('sessions', key)?.roomThreadId === thread.id,
+        );
+        this.setRoomState({ ...this.roomStore.roomState() });
+        this.broadcast();
+        return this.store.roomView(this.roomId);
+      }
       case "room.send":
         return this.roomSend(params);
       case "room.generateImage":
@@ -6510,9 +6530,22 @@ export class Engine {
           fileScope: "workspace",
         },
       };
+    const boundProjectId =
+      project.kind === 'lounge' && project.roomId?.startsWith('project:')
+        ? project.roomId.slice(8)
+        : project.id;
+    const mcpProject = this.require<Project>('projects', boundProjectId);
+    const roomMcpEnabled =
+      project.kind === 'lounge'
+      && Boolean(this.projectRoomDirectory(project.roomId))
+      && Boolean(session.roomThreadId && this.store.get<RoomThread>('room_threads', session.roomThreadId)?.mcpEnabled)
+      && !run.imageGeneration
+      && !run.flowOperationId
+      && (!session.purpose || session.purpose === 'room-mention');
     const ctx: AdapterContext = {
-      mcp: this.mcp.effective({ scope: 'project', projectId: project.id }),
-      mcpProjectDirectory: project.directory,
+      roomMcpEnabled,
+      mcp: this.mcp.effective({ scope: 'project', projectId: mcpProject.id }),
+      mcpProjectDirectory: mcpProject.directory,
       prepareMcp: () => this.mcp.prepare(ctx),
       persistNativeMcpServers: names => {
         const current = this.require<Session>('sessions', session.id);

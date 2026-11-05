@@ -7,9 +7,13 @@ import { nativeStdio } from './launch';
 /** External servers do not inherit a model's filesystem/network sandbox. */
 export function mcpRestriction(ctx: AdapterContext): string | undefined {
   if (ctx.run.provider === 'deepseek') return 'DeepSeek API 保留只读审查边界，未开放外部 MCP。';
-  if (ctx.conversation === 'room' || ctx.session.purpose?.startsWith('room-'))
-    return '此聊天场景不开放外部 MCP。';
+  const room = ctx.conversation === 'room' || ctx.session.purpose?.startsWith('room-');
+  if (room && !ctx.roomMcpEnabled) return '本会议尚未授权外部 MCP。';
   const permissions = ctx.settings.permissions[ctx.run.provider];
+  if (room && ctx.roomMcpEnabled) {
+    if (!permissions?.network) return '禁止联网时不启动外部 MCP（stdio 服务也可能联网）。';
+    return;
+  }
   if (!ctx.session.writeMode) return '只读会话不开放无法隔离写入的外部 MCP。';
   if (!permissions?.network) return '禁止联网时不启动外部 MCP（stdio 服务也可能联网）。';
   if (permissions.commands === 'deny') return '禁止命令时不启动外部 MCP。';

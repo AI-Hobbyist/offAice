@@ -1,12 +1,14 @@
 import type { AcpExecutor, AdapterContext } from '../../shared/types';
 import { plainRoomSpeech } from './chat-policy';
+import { claudeMcpServers } from '../mcp/execution';
 
 /** Invocation-only overrides: never edit the user's provider, memory or project config. */
 export function acpChatLaunch(executor: AcpExecutor, env: NodeJS.ProcessEnv, context?: AdapterContext) {
   const args=[...executor.args];
   if(!context||!plainRoomSpeech(context))return {args,env};
   if(executor.catalogId==='qoder'){
-    args.push('--tools','','--strict-mcp-config','--mcp-config',JSON.stringify({mcpServers:{}}));
+    args.push('--tools', '', '--strict-mcp-config', '--mcp-config',
+      JSON.stringify({ mcpServers: claudeMcpServers(context) }));
   }
   if(executor.catalogId==='opencode'&&env.OPENCODE_CONFIG_CONTENT){
     let config:unknown;

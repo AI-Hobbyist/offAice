@@ -164,6 +164,17 @@ export function RoomView({ snapshot, invoke: rawInvoke, onOpenSession, split, fo
   const enter = (message: RoomMessage) => message.at > enterAfter ? ' enter' : '';
   const threads = room.threads?.length ? room.threads : noTopic?[]:[{ id: currentId, title: '当前话题', createdAt: '' }];
   const thread = threads.find(item => item.id === selectedId);
+  const meetingMcpEnabled = Boolean(thread?.mcpEnabled);
+  async function toggleMeetingMcp() {
+    const enabled = !meetingMcpEnabled;
+    if (enabled && !window.confirm(
+      '允许本会议使用已配置的外部 MCP？外部服务以当前账号权限运行，可以联网、执行命令或修改文件，不受会议只读限制。仅授权你信任的服务。',
+    )) return;
+    try {
+      const result = await invoke<RoomData>('room.mcp.save', { enabled, confirm: enabled });
+      if (result) setLoaded(result);
+    } catch {}
+  }
   const [history, setHistory] = useState<RoomHistory | null>(null), [loading, setLoading] = useState(false);
   const request = useRef(0), loadingRef = useRef(false);
   useEffect(()=>{if(personal){++request.current;setHistory(null);setArchiveId(undefined);setNewTopic(null);}},[expectedFolder]);
@@ -383,7 +394,20 @@ export function RoomView({ snapshot, invoke: rawInvoke, onOpenSession, split, fo
     {!project && !personal && <RoomBackdrop />}
     <div className="room-top">
     {project ? surface?.recordActions ? null : <div className="room-tool-row">
-      <span className="room-tool-title">{surface?.title??'会议聊天'}<small>{surface?.hint??'成员可查看项目文件，但不改文件；正在工作的成员只回答 @ 点名'}</small></span>
+      <span className="room-tool-title">{surface?.title??'会议聊天'}<small>{surface?.hint??(meetingMcpEnabled ? '原生工具只读；已授权的外部 MCP 可独立执行操作' : '成员可查看项目文件，但不改文件；正在工作的成员只回答 @ 点名')}</small></span>
+      {roomId.startsWith('project:') && (
+        <button
+          type="button"
+          className="button small secondary"
+          aria-label="允许本会议使用 MCP"
+          aria-pressed={meetingMcpEnabled}
+          disabled={state.active || archived || !loaded}
+          onClick={() => void toggleMeetingMcp()}
+          title="管理本会议的外部 MCP 授权；服务连接仍受联网设置和项目服务信任控制"
+        >
+          {meetingMcpEnabled ? 'MCP 已授权' : 'MCP 未授权'}
+        </button>
+      )}
       <button type="button" className="icon-button topic-more" aria-label="会议记录操作" aria-haspopup="menu" title="压缩、导出和清空会议记录" onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); setMenu({ x: rect.left, y: rect.bottom + 6, items: recordItems }); }}><MoreHorizontal size={16} /></button>
     </div> : <>
     <header className="room-head">

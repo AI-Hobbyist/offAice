@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { CodexAdapter } from '../../src/backend/adapters/codex';
@@ -16,6 +16,7 @@ const provider = process.argv.includes('--dsh')
   : process.argv.includes('--claude')
     ? 'claude'
     : 'codex';
+const meeting = process.argv.includes('--meeting');
 const directory = path.resolve('.test-cache', `mcp-${provider}-${Date.now()}`);
 await mkdir(directory, { recursive: true });
 const receipts: unknown[] = [];
@@ -49,7 +50,11 @@ const settings = {
   nodeRuntime: 'local' as const,
   permissions: {
     ...DEFAULT_SETTINGS.permissions,
-    [provider]: { commands: 'auto' as const, network: true, fileScope: 'any' as const },
+    [provider]: {
+      commands: meeting ? ('deny' as const) : ('auto' as const),
+      network: true,
+      fileScope: meeting ? ('workspace' as const) : ('any' as const),
+    },
   },
 };
 const env = {
@@ -62,6 +67,16 @@ const env = {
   AIROOM_CLAUDE_HOME: path.join(home, 'claude'),
   AIROOM_DSH_HOME: path.join(home, 'dsh'),
 };
+// Meeting tests use a separate native home; never modify the running desktop's sessions/configuration.
+if (meeting && provider !== 'dsh') {
+  const isolatedHome = path.join(directory, 'native-home');
+  await mkdir(isolatedHome, { recursive: true });
+  const source = provider === 'codex' ? env.AIROOM_CODEX_HOME : env.AIROOM_CLAUDE_HOME;
+  for (const file of provider === 'codex' ? ['auth.json'] : ['.credentials.json', '.claude.json'])
+    await copyFile(path.join(source, file), path.join(isolatedHome, file));
+  if (provider === 'codex') env.AIROOM_CODEX_HOME = isolatedHome;
+  else env.AIROOM_CLAUDE_HOME = isolatedHome;
+}
 try {
   for (const transport of (process.argv.includes('--stdio-only')
     ? ['stdio']
@@ -81,12 +96,14 @@ try {
         id: randomUUID(),
         projectId: 'mcp-smoke',
         provider,
-        writeMode: true,
+        writeMode: !meeting,
         autoApprove: false,
       } as Session,
       cwd: directory,
       roomRuntime: process.argv.includes('--disable'),
-      conversation: process.argv.includes('--disable') ? 'desk' : undefined,
+      conversation: meeting ? 'room' : process.argv.includes('--disable') ? 'desk' : undefined,
+      roomMcpEnabled: meeting,
+      roomProjectDirectory: meeting ? directory : undefined,
       env,
       settings,
       mcp: [

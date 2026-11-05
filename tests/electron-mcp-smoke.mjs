@@ -64,6 +64,12 @@ try {
       window.airoom.invoke('project.create', { name: 'MCP 验证项目', directory }),
     directory,
   );
+  await page.evaluate(async (projectId) => {
+    const member = await window.airoom.invoke('team.save', {
+      member: { name: 'MCP 验证成员', executor: 'codex' },
+    });
+    await window.airoom.invoke('project.update', { projectId, memberIds: [member.id] });
+  }, project.id);
   await page.getByRole('button', { name: '设置与连接', exact: true }).click();
   await page.getByRole('button', { name: 'MCP 工具', exact: true }).click();
   const panel = page.getByRole('region', { name: 'MCP 配置', exact: true });
@@ -131,6 +137,18 @@ try {
     .click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'MCP 配置…', exact: true }).click();
   await page.getByText('已禁用，屏蔽同名继承服务', { exact: false }).waitFor();
+  await page.getByRole('button', { name: '关闭对话框', exact: true }).click();
+  await page.getByRole('treeitem').filter({ hasText: 'MCP 验证项目' }).first().click();
+  const meetingMcp = page.getByRole('button', { name: '允许本会议使用 MCP', exact: true });
+  await meetingMcp.waitFor();
+  assert.equal(await meetingMcp.getAttribute('aria-pressed'), 'false');
+  await meetingMcp.click();
+  await page.getByText('MCP 已授权', { exact: true }).waitFor();
+  assert.equal(await meetingMcp.getAttribute('aria-pressed'), 'true');
+  await page.getByText('原生工具只读；已授权的外部 MCP 可独立执行操作', { exact: true }).waitFor();
+  await page.screenshot({ path: path.join(results, 'mcp-meeting.png') });
+  await meetingMcp.click();
+  await page.getByText('MCP 未授权', { exact: true }).waitFor();
   assert.deepEqual(errors, []);
   const snapshot = await page.evaluate(() => window.airoom.invoke('mcp.list', { scope: 'global' }));
   assert.ok(!JSON.stringify(snapshot).includes('mcp-ui-private-123456'));
@@ -151,6 +169,7 @@ try {
           'source-switch-preserves-config',
           'test-result-persistence',
           'project-direct-entry',
+          'meeting-mcp-authorize-revoke',
         ],
         at: new Date().toISOString(),
       },

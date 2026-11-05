@@ -63,3 +63,19 @@ ZCode 暂不支持，其他 ACP 的 HTTP 需声明能力；旧 HTTP+SSE 不在�
 验证：16/16 回归测试、tsc、生产构建 PASS；真实 Windows 窗口添加裸命令 mcp-ui-echo 并连接 PASS（隔离 nvm、无外置 Node，使用应用运行时）。实际 codegraph / minecraft-dev-mcp 裸命令经诊断与正式执行映射均连接成功，分别 1/21 工具；只读取工具清单。截图中文正常。使用 formatter 的首次本地路径不存在，改用 npm 缓存的 prettier 后 PASS。
 
 当前 main；修复提交 0113b966e50bf83f052c78c64cedcd20752ed111 已推送 origin/main。新版绿色包已完成，源工作区干净；最终解压 AIROOM.exe 的真实 Windows MCP UI PASS，packaged=true，visible=true，中文正常。7560 个文件哈希与 171 个依赖校验通过。新版 ZIP SHA256 fdb340a7664472cd936d3506d99caf12afcc02624e2a3616e6d965473240f9e3，大小 172646596 字节。路径 release/AIROOM-0.1.0-Windows-x64-Green.zip；旧包/摘要/收据已保存为 release/pre-command-fix-*。无剩余实施，无实际阻碍；用户人工验收 MANUAL/PENDING。
+
+## 2026-11-05：项目会议聊天未看到 MCP（诊断完成）
+
+用户截图位于项目会议聊天，显示只读项目访问。已检查 mcpRestriction/executableServers 和 McpService.prepare：room 或 room-* 会话被明确关闭外部 MCP；只读会话另有独立限制。用真实函数复现：配置 1 个启用的 codegraph，reason=此聊天场景不开放外部 MCP。，injected=0。根因是既有场景/权限策略，不是命令查找或测试连接失败。
+
+未修改生产代码、用户配置或绿色包。若开放会议聊天 MCP，须改变现有只读权限边界（外部 MCP 不受模型沙箱限制），需用户确认选择。可选范围：仅展示配置/禁用原因，或显式授权会议调用外部 MCP。未取得授权前不解除限制。本次诊断不需要 GUI 验收；实际模型工具调用未执行。当前 main，修复与绿色包仍为前一条记录，只有本手册追加诊断未提交；.codegraph/ 保留。无已授权的剩余实施项。
+
+## 2026-11-05：开放项目会议 MCP（用户已授权，实施验证完成）
+
+用户明确回复“开放”，同意为项目会议增加外部 MCP 显式授权。新增当前会议的授权/撤销开关，默认关闭；普通发言和 @ 回复可使用，原生工具仍只读，联网禁用与服务信任确认继续生效。举手、纪要、图片和压缩辅助轮次不获授权。撤销/切换时清理本会议运行时，指纹包含授权位。修正会议内部项目错误作为 MCP 来源，改为绑定真实项目的全局+项目配置。Claude 普通发言移除外部 MCP 全禁用并按已授权服务开放，原生工具保持只读。Qoder 保留原生工具关闭和严格 MCP 配置，只传 AIROOM 的服务。
+
+17/17 自动回归、tsc、生产构建 PASS。Engine 真实上下文测试覆盖项目覆盖全局、显式确认、开启/撤销、只读命令限制保持、禁网、辅助轮次禁用和真实 SDK 工具调用。Codex、Claude 用隔离官方账号目录在 readonly/commands-deny/workspace 条件下完成 model -> stdio MCP -> model，服务随机 nonce 回传 PASS。真实 Windows 窗口授权/撤销 PASS，中文正常。初次 UI 测试缺少进入项目步骤及参会成员，修正隔离测试数据/导航后 PASS；未通过轮次未计为通过。其他 ACP/DSH 会议模型调用本轮未验证，通用配置映射已覆盖。
+
+用户询问 OMP 项目独立配置：用真实 readMcpSource 只读检查 D:/UserData/Desktop/Project/OMP/OMP_26.1.2/.codex/config.toml，识别 minecraft-dev，stdio，enabled=true，issues=[]。已说明项目范围选 OMP、来源 Codex、预览/应用导入；未修改原文件或用户 AIROOM 数据。继续遵循其他产品配置仅用于导入的约定。
+
+当前 main；本次实施待收尾提交/推送和绿色包最终验证。旧交付仍是 0113b96 命令修复版；新版将保留旧包为 pre-meeting-mcp-*。无剩余功能实施，人工验收 MANUAL/PENDING。额度接口 usedPercent=9，未触发交接。
