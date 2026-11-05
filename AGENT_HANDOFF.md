@@ -1,6 +1,6 @@
 # Agent Handoff
 
-最新任务：MCP 裸命令启动修复已完成并推送，交付与验证见文末 2026-11-05 MCP 直接输入命令名称记录。下文 M1–M4 原始交付哈希为历史记录；当前绿色包以文末为准。最终收尾文档提交请以 git log 为准。
+最新任务：项目会议 MCP 开放已完成并推送，OMP 项目 .codex 导入只读验证通过。当前绿色包和验证以文末“开放项目会议 MCP”记录为准；前述交付均是历史版本。最终收尾文档提交请以 git log 为准。
 
 ## 当前任务最终状态
 
@@ -78,4 +78,4 @@ ZCode 暂不支持，其他 ACP 的 HTTP 需声明能力；旧 HTTP+SSE 不在�
 
 用户询问 OMP 项目独立配置：用真实 readMcpSource 只读检查 D:/UserData/Desktop/Project/OMP/OMP_26.1.2/.codex/config.toml，识别 minecraft-dev，stdio，enabled=true，issues=[]。已说明项目范围选 OMP、来源 Codex、预览/应用导入；未修改原文件或用户 AIROOM 数据。继续遵循其他产品配置仅用于导入的约定。
 
-当前 main；本次实施待收尾提交/推送和绿色包最终验证。旧交付仍是 0113b96 命令修复版；新版将保留旧包为 pre-meeting-mcp-*。无剩余功能实施，人工验收 MANUAL/PENDING。额度接口 usedPercent=9，未触发交接。
+当前 main；实施提交 88cc2473d7c43811be91c0ba09d9d509acba2d1e 已推送 origin/main。新版绿色包源提交为该提交，sourceDirty=false；release/AIROOM-0.1.0-Windows-x64-Green.zip，172647593 字节，SHA256 54d2337e8aaac382346ce52309e4322134c8bd221dbea1624dba73687febd825。7560 个解压文件哈希一致，171 个生产依赖校验 PASS；最终解压 AIROOM.exe 的真实 Windows MCP UI 授权/撤销及 stdio/HTTP 测试 PASS，packaged=true、visible=true，中文正常。旧包/摘要/收据保存为 release/pre-meeting-mcp-*。签名 NotSigned。无剩余实施，无实际阻碍；用户人工验收 MANUAL/PENDING。额度接口 usedPercent=9，未触发交接。
