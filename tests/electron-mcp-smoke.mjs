@@ -44,12 +44,13 @@ await copyFile(
 await writeFile(path.join(commandDirectory, 'mcp-ui-echo.cmd'), '@"%dp0%\\echo.mjs" %*');
 env.NVM_HOME = nvmRoot;
 delete env.ELECTRON_RUN_AS_NODE;
-const app = await electron.launch({
+const launchOptions = {
   executablePath: env.AIROOM_ELECTRON_EXE,
   args: [env.AIROOM_SMOKE_APP_ROOT || root],
   env,
   timeout: 60000,
-});
+};
+let app = await electron.launch(launchOptions);
 let page;
 try {
   page = await app.firstWindow();
@@ -75,15 +76,21 @@ try {
   await page.getByRole('button', { name: '个人资料', exact: true }).click();
   const introduction = '我是开发者，主要使用中文交流。PROFILE_UI_MARKER';
   await page.getByLabel('自我介绍', { exact: true }).fill(introduction);
-  await page.getByRole('button', { name: '保存个人资料', exact: true }).click();
-  await expect
-    .poll(() =>
-      page.evaluate(() =>
-        window.airoom.invoke('snapshot').then((snapshot) => snapshot.profile.introduction),
-      ),
-    )
-    .toBe(introduction);
-  await page.getByRole('button', { name: '关闭对话框', exact: true }).click();
+  await page.getByRole('button', { name: '连接与版本', exact: true }).click();
+  await page.getByRole('button', { name: '个人资料', exact: true }).click();
+  await expect(page.getByLabel('自我介绍', { exact: true })).toHaveValue(introduction);
+  await page.getByRole('button', { name: '保存设置', exact: true }).click();
+  await page
+    .getByRole('dialog', { name: '设置与成员连接', exact: true })
+    .waitFor({ state: 'hidden' });
+  await app.close();
+  app = await electron.launch(launchOptions);
+  page = await app.firstWindow();
+  page.setDefaultTimeout(20000);
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: '设置与连接', exact: true }).waitFor();
+  await page.evaluate(() => window.airoom.invoke('snapshot'));
   await page.getByRole('button', { name: '设置与连接', exact: true }).click();
   await page.getByRole('button', { name: '个人资料', exact: true }).click();
   await expect(page.getByLabel('自我介绍', { exact: true })).toHaveValue(introduction);
@@ -215,6 +222,7 @@ try {
           'meeting-approval-dialog-answer-reopen',
           'conversation-access-modes',
           'profile-introduction-save-reopen',
+          'profile-footer-save-full-process-restart',
         ],
         at: new Date().toISOString(),
       },

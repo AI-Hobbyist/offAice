@@ -12,7 +12,7 @@ import {DiscussionCallSettings} from './discussion-call-settings';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Cable, Check, Download, Folder, Globe2, Info, KeyRound, LoaderCircle, LockKeyhole, Network, Palette, RefreshCw, ShieldCheck, Trash2, UserRound, Users } from 'lucide-react';
 import { PROVIDER_NAMES, normalizePermissions } from '../shared/defaults';
-import type { PermissionMember, ProviderId, ProviderInfo, Settings, Snapshot } from '../shared/types';
+import type { PermissionMember, ProviderId, ProviderInfo, Settings, Snapshot, UserProfile } from '../shared/types';
 import type { MemberVersions, MemberInstallation } from '../shared/member-versions';
 import { effectiveConfigText } from '../shared/executor-config';
 import { Avatar, useTeam } from './members';
@@ -37,6 +37,7 @@ export function SettingsModal({ snapshot, invoke, onClose, notify, installs, onI
   initialFocus?: string | null;
 }) {
   const team = useTeam();
+  const [profile, setProfile] = useState<UserProfile>(() => ({ ...snapshot.profile }));
   const [editing, setEditing] = useState<string | null>(initialEditing ?? null);
   useEffect(() => {
     if (!initialFocus) return;
@@ -94,7 +95,19 @@ export function SettingsModal({ snapshot, invoke, onClose, notify, installs, onI
   async function saveConfiguration() {
     await invoke('settings.save', { settings });
   }
-  async function save() { setBusy(true); try { await saveConfiguration(); notify('设置已保存。新任务会使用当前配置。'); onClose(); } catch {} finally { setBusy(false); } }
+  async function save() {
+    setBusy(true);
+    try {
+      await saveConfiguration();
+      if (JSON.stringify(profile) !== JSON.stringify(snapshot.profile)) {
+        await invoke('profile.save', { profile });
+      }
+      notify('设置和个人资料已保存。新任务会使用当前配置。');
+      onClose();
+    } catch {} finally {
+      setBusy(false);
+    }
+  }
   async function probe(provider?: ProviderId) { setChecking(provider ?? 'all'); try { await saveConfiguration(); await invoke('provider.probe', provider ? { provider } : {}); } catch {} finally { setChecking(null); } }
   async function selectManualProvider(provider?: ProviderId) {
     try {
@@ -177,7 +190,7 @@ export function SettingsModal({ snapshot, invoke, onClose, notify, installs, onI
             <p className="settings-description">清单执行端自动使用对应适配；手动连接使用 ACP。登录、模型和权限按执行端实际能力提供。</p></>}
           {(snapshot.executors ?? []).map(executor => <div key={executor.id} data-provider={executor.id}><AcpConnection executor={executor} info={snapshot.providers.find(item => item.id === executor.id)} snapshot={snapshot} invoke={invoke} notify={notify} settings={settings} setSettings={setSettings} /></div>)}
         </>}
-        {tab === 'profile' && <ProfileSettings snapshot={snapshot} invoke={invoke} />}
+        {tab === 'profile' && <ProfileSettings profile={profile} onChange={setProfile} invoke={invoke} />}
         {tab === 'permissions' && <PermissionSettings snapshot={snapshot} settings={settings} setSettings={setSettings} />}
         {tab === 'network' && <>
           <div className="settings-section-heading"><h3>使用当前网络出口</h3></div>
@@ -223,7 +236,7 @@ export function SettingsModal({ snapshot, invoke, onClose, notify, installs, onI
         </>}
       </div>
     </div>
-    {tab === 'members' && editing ? <div className="modal-footer card-editor-footer" ref={setCardActions} /> : <div className="modal-footer"><span className="save-note"><LockKeyhole size={12} />人物卡和个人资料有各自的保存按钮</span><button className="button quiet" disabled={backupBusy} onClick={onClose}>取消</button><button className="button primary" disabled={busy || backupBusy || !snapshot.backendReady} onClick={() => void save()}>{busy ? <LoaderCircle size={14} className="spin" /> : <Check size={14} />}保存设置</button></div>}
+    {tab === 'members' && editing ? <div className="modal-footer card-editor-footer" ref={setCardActions} /> : <div className="modal-footer"><span className="save-note"><LockKeyhole size={12} />个人资料会随设置一起保存；人物卡需单独保存</span><button className="button quiet" disabled={backupBusy} onClick={onClose}>取消</button><button className="button primary" disabled={busy || backupBusy || !snapshot.backendReady} onClick={() => void save()}>{busy ? <LoaderCircle size={14} className="spin" /> : <Check size={14} />}保存设置</button></div>}
   </Modal>;
 }
 

@@ -1,7 +1,7 @@
 import { connectionLabel } from '../shared/executor-connection';
 import { requestedConfig } from '../shared/executor-config';
 import { ConfigurationHint, useProviderConfiguration } from './provider-configuration';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode, type Dispatch, type SetStateAction } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, Download, ImagePlus, LoaderCircle, Plus, RotateCcw, Save, Trash2, UserRound } from 'lucide-react';
 import { BUILTIN_MEMBERS, PORTRAIT_SCALE, PROVIDER_NAMES } from '../shared/defaults';
@@ -242,12 +242,27 @@ export function CardEditor({ snapshot, memberId, invoke, notify, onBack, onCance
 }
 
 /** The user's own name and avatar, and how each member will address them. */
-export function ProfileSettings({ snapshot, invoke }: { snapshot: Snapshot; invoke: Invoke }) {
+export function ProfileSettings({
+  profile,
+  onChange: setProfile,
+  invoke,
+}: {
+  profile: UserProfile;
+  onChange: Dispatch<SetStateAction<UserProfile>>;
+  invoke: Invoke;
+}) {
   const team = useTeam();
-  const [profile, setProfile] = useState<UserProfile>(snapshot.profile);
   const [busy, setBusy] = useState(false);
   async function pick() { try { const result = await invoke<{ file: string | null }>('asset.import'); if (result?.file) setProfile(previous => ({ ...previous, avatar: result.file! })); } catch {} }
-  async function save() { setBusy(true); try { await invoke('profile.save', { profile }, '个人资料已保存。'); } catch {} finally { setBusy(false); } }
+  async function save() {
+    setBusy(true);
+    try {
+      const saved = await invoke<UserProfile>('profile.save', { profile }, '个人资料已保存。');
+      setProfile(saved);
+    } catch {} finally {
+      setBusy(false);
+    }
+  }
   return <>
     <div className="settings-section-heading"><h3>个人资料</h3></div>
     <div className="profile-card">

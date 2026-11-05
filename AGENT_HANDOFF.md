@@ -109,3 +109,13 @@ ZCode 暂不支持，其他 ACP 的 HTTP 需声明能力；旧 HTTP+SSE 不在�
 20/20 回归、tsc、生产构建 PASS。新测试覆盖持久化、修剪空白、角色卡保留、只改名字保留介绍、超长拒绝且不写入、清空后不再注入。真实 Windows UI 保存/关闭/重开 PASS，中文与布局正常，截图 .test-cache/mcp-ui/profile-introduction.png；原 MCP、会议授权、审批与访问模式回归一并 PASS。本轮未进行真实模型调用，验证的是持久化和实际上下文组装入口。
 
 当前 main；实施提交 b9fac5bc698c81e4e6b5b968eb48c35cfffdae35 已推送 origin/main。最终绿色包 release/AIROOM-0.1.0-Windows-x64-Green.zip，源提交为该提交，sourceDirty=false；172650210 字节，SHA256 7c697628914f9cb234b7bdafe01102d7dbb609ede03b4bbcce4cd74536cb1b30。7560 个解压文件哈希一致，171 个生产依赖校验 PASS。最终解压 AIROOM.exe 的真实 Windows UI 回归 PASS，packaged=true、visible=true，自我介绍保存/重开正常，中文和布局已检查。旧 ZIP/摘要/收据保留为 release/pre-profile-introduction-*。签名 NotSigned。本轮未改用户已有资料；无剩余实施，无实际阻碍；用户人工验收 MANUAL/PENDING。额度可靠接口 usedPercent=11，未触发交接。
+
+## 自我介绍保存后重启丢失（当前修复）
+
+用户报告自我介绍输入后重启消失。已通过上一版真实 AIROOM.exe 完整复现：输入介绍，点底部“保存设置”，退出整个进程并重开同一资料目录，期望 PROFILE_UI_MARKER，实际空串（RED）。后端只有 profile.save 写资料，启动没有删除介绍；根因是 ProfileSettings 独立本地草稿，底部 save 仅提交 settings.save，未提交 profile.save；切换分类还会卸载并丢掉草稿。
+
+修复：资料草稿提升到 SettingsModal，ProfileSettings 复用受控草稿。底部保存设置在资料有变更时一并提交 profile.save，失败不关闭窗口；局部“保存个人资料”保留。切换分类保留草稿，页脚说明与使用文档同步。未增加输入自动保存；取消/关闭仍不提交未保存草稿。
+
+验证：同一真实窗口完整进程退出/重启回归 GREEN，重开后介绍保留；tsc、生产构建和包含原 MCP/审批/访问模式的 UI 回归 PASS。测试补充切换分类保留草稿，最终绿色包会再次执行全部界面步骤。未改后端存储格式或用户原资料，本轮未调用模型。
+
+当前 main，待修复提交/推送及绿色包最终验证。旧包将保留为 pre-profile-save-fix-*。无其他实施阶段；人工验收 MANUAL/PENDING。额度接口 usedPercent=11，未触发交接。
