@@ -1,6 +1,6 @@
 # Agent Handoff
 
-最新任务：项目会议 MCP 开放已完成并推送，OMP 项目 .codex 导入只读验证通过。当前绿色包和验证以文末“开放项目会议 MCP”记录为准；前述交付均是历史版本。最终收尾文档提交请以 git log 为准。
+最新任务：项目会议审批交互对话框修复已完成并推送。当前绿色包与验证以文末“项目会议审批无法交互”记录为准，之前交付均是历史版本。最终文档提交以 git log 为准。
 
 ## 当前任务最终状态
 
@@ -86,4 +86,4 @@ ZCode 暂不支持，其他 ACP 的 HTTP 需声明能力；旧 HTTP+SSE 不在�
 
 真实窗口回归先运行已发布 88cc247 程序，等待 MCP 确认对话框 5 秒超时（RED）。修复后真实 Windows 窗口 PASS：自动弹出、关闭、待处理重开、信任并启用提交 allow、结构化问题选择和答案提交。新增 fixtures/approval-window.mjs 用固定 snapshot 和独立 preload 驱动真实生产 renderer，不连接真实账号、不调用模型，不冒称后端端到端验证。初次结构化问题 fixture 继承了 answered 状态，修正为 pending 后 PASS。原有 MCP 设置 stdio/HTTP 真实连接与会议授权/撤销一并 PASS。tsc、生产构建 PASS。最终包还将等待动画稳定后检查截图。
 
-本轮只修改 renderer 审批入口、UI 测试与说明，不改变后端信任/审批规则。当前 main，待修复提交/推送与绿色包最终窗口验收；旧包将保存为 pre-approval-dialog-*。人工验收 MANUAL/PENDING，无额外功能阶段。
+本轮只修改 renderer 审批入口、UI 测试与说明，不改变后端信任/审批规则。当前 main，修复提交 9e7255f9063af6b42db031e83bc2eda6c5d83e63 已推送。绿色包 release/AIROOM-0.1.0-Windows-x64-Green.zip，源提交为该提交，sourceDirty=false；172647824 字节，SHA256 ecfcc50007429e92558d75fd8cc6bd4807eda21bba26aa82d7a8c240b2b1e8cf。最终解压 AIROOM.exe 实际窗口验收 PASS，packaged=true、visible=true；审批固定数据回归 PASS，动画完成后截图中文/布局正常。7560 个文件哈希一致，171 个生产依赖校验通过。旧包/摘要/收据保存为 release/pre-approval-dialog-*。签名 NotSigned，本轮没有真实模型调用；之前后端/模型验证仍为历史记录。用户人工验收 MANUAL/PENDING，无剩余实施，无实际阻碍。额度接口 usedPercent=9，未触发交接。
