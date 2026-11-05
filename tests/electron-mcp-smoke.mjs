@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createServer } from 'node:http';
 import { _electron as electron } from '@playwright/test';
@@ -33,6 +33,15 @@ await writeFile(
   }),
 );
 const env = { ...process.env };
+const nvmRoot = path.join(process.env.AIROOM_TEST_PROFILE, 'nvm');
+const commandDirectory = path.join(nvmRoot, 'v22.0.0');
+await mkdir(commandDirectory, { recursive: true });
+await copyFile(
+  path.join(root, 'tests', 'fixtures', 'mcp-echo.mjs'),
+  path.join(commandDirectory, 'echo.mjs'),
+);
+await writeFile(path.join(commandDirectory, 'mcp-ui-echo.cmd'), '@"%dp0%\\echo.mjs" %*');
+env.NVM_HOME = nvmRoot;
 delete env.ELECTRON_RUN_AS_NODE;
 const app = await electron.launch({
   executablePath: env.AIROOM_ELECTRON_EXE,
@@ -72,10 +81,8 @@ try {
 
   await panel.getByRole('button', { name: '添加服务', exact: true }).click();
   await panel.getByLabel('MCP 服务名称', { exact: true }).fill('local_echo');
-  await panel.getByLabel('MCP 启动命令', { exact: true }).fill(process.execPath);
-  await panel
-    .getByLabel('MCP 参数', { exact: true })
-    .fill(JSON.stringify([path.join(root, 'tests', 'fixtures', 'mcp-echo.mjs'), '--stdio']));
+  await panel.getByLabel('MCP 启动命令', { exact: true }).fill('mcp-ui-echo');
+  await panel.getByLabel('MCP 参数', { exact: true }).fill(JSON.stringify(['--stdio']));
   await panel
     .getByLabel('MCP 环境变量', { exact: true })
     .fill(JSON.stringify({ TEST_TOKEN: 'mcp-ui-private-123456' }));
@@ -117,7 +124,11 @@ try {
   if (process.env.AIROOM_REQUIRE_PACKAGED === '1') assert.equal(packaged, true);
   await page.screenshot({ path: path.join(results, 'mcp-settings.png') });
   await page.getByRole('button', { name: '关闭对话框', exact: true }).click();
-  await page.getByRole('treeitem').filter({ hasText: 'MCP 验证项目' }).first().click({ button: 'right' });
+  await page
+    .getByRole('treeitem')
+    .filter({ hasText: 'MCP 验证项目' })
+    .first()
+    .click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'MCP 配置…', exact: true }).click();
   await page.getByText('已禁用，屏蔽同名继承服务', { exact: false }).waitFor();
   assert.deepEqual(errors, []);
@@ -128,8 +139,8 @@ try {
     JSON.stringify(
       {
         status: 'passed',
-      realWindows: windows,
-      packaged,
+        realWindows: windows,
+        packaged,
         covered: [
           'import-preview-cancel',
           'import-apply',
@@ -138,7 +149,8 @@ try {
           'http-test',
           'project-override',
           'source-switch-preserves-config',
-        'test-result-persistence', 'project-direct-entry',
+          'test-result-persistence',
+          'project-direct-entry',
         ],
         at: new Date().toISOString(),
       },

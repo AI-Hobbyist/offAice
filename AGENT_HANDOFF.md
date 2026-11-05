@@ -31,3 +31,33 @@ M1 534b377、M2 a0e0821、M3 744b642、M4 bf733bd 均已推送并核对远端。
 
 ZCode 暂不支持，其他 ACP 的 HTTP 需声明能力；旧 HTTP+SSE 不在本期；ChatGPT 云端配置仅接受导出/手工地址。签名 NotSigned，未声明可信签名。人工未验记 MANUAL/PENDING，不作为 blocked。
 后续保持最小范围与现有用户改动；Qt 只能真实 Windows 窗口，严禁 offscreen；构建/测试前台 PowerShell Tee-Object build.log 并立即检查退出码。Node 26.13.0 已由 nvm 安装启用；D:/node/nodejs/node.exe 已核对版本。额度可靠接口最近 usedPercent=7，未触发额度交接。
+
+## 2026-11-05：CodeGraph 连接诊断（已完成）
+
+用户截图报 .cmd 非 npm shim。已用 AIROOM 的 resolveAcpProgram("codegraph") 复现同一错误：本机 PATH 指向 C:/Users/eryth/AppData/Local/codegraph/current/bin/codegraph.cmd，实际内容使用自带 node.exe、--liftoff-only 和 ../lib/dist/bin/codegraph.js；不符合现有仅支持 npm shim 的解析格式。
+
+已用同一 connectMcp 连接层验证可用配置：
+- command：C:/Users/eryth/AppData/Local/codegraph/current/node.exe
+- args：["--liftoff-only", "C:/Users/eryth/AppData/Local/codegraph/current/lib/dist/bin/codegraph.js", "serve", "--mcp"]
+- cwd：D:/UserData/Desktop/Project/offAice
+- 结果：connected，1 个工具 codegraph_explore；连接已关闭，无模型请求。
+
+本轮只诊断并提供可用填写方式，未修改程序代码或既有绿色 ZIP；本手册更新未提交。原 MCP M1–M4 交付状态保持有效。没有剩余诊断工作；兼容该自定义启动脚本的代码改动未纳入本轮范围。
+
+## 2026-11-05：Minecraft Dev MCP 添加方式（已验证）
+
+本机已安装 @mcdxai/minecraft-dev-mcp 1.3.0，位于 nvm 的 v22.22.2 全局包目录；当前 Node 26 的 PATH 找不到旧版本目录中的 minecraft-dev-mcp。
+可用 command：D:/node/nvm/v22.22.2/node.exe
+可用 args：["D:/node/nvm/v22.22.2/node_modules/@mcdxai/minecraft-dev-mcp/dist/index.js"]
+已通过 AIROOM 同一 connectMcp 连接层完成初始化/listTools，connected，21 个工具；连接已关闭，无模型调用或游戏启动。验证使用工作区 .test-cache/minecraft-mcp-check 隔离缓存，未改用户原缓存；填写时可使用默认环境变量 {}。
+本轮未修改代码、安装包或系统 Node 版本；仅补充此诊断记录，未提交。
+
+## 2026-11-05：MCP 直接输入命令名称（实施完成）
+
+根因：连接测试复用了过窄的 ACP 启动器解析，而默认工作目录的正式执行直接转发原始命令；均未覆盖 CodeGraph 自带 Node 启动器与 nvm 旧版本全局安装目录。
+
+新增 MCP 专用统一解析器，连接测试/正式执行共同使用；查找项目本地命令、PATH、npm 全局目录、nvm 已安装版本，解析 npm 和单行 Node 转发器，保留匹配的 Node 与参数。参数不经过命令解释器。界面示例和使用说明同步更新。未修改其他应用配置，未新增自动安装功能。
+
+验证：16/16 回归测试、tsc、生产构建 PASS；真实 Windows 窗口添加裸命令 mcp-ui-echo 并连接 PASS（隔离 nvm、无外置 Node，使用应用运行时）。实际 codegraph / minecraft-dev-mcp 裸命令经诊断与正式执行映射均连接成功，分别 1/21 工具；只读取工具清单。截图中文正常。使用 formatter 的首次本地路径不存在，改用 npm 缓存的 prettier 后 PASS。
+
+当前 main；本次修复待收尾提交、推送与新版绿色包交付。旧绿色包仍是 bf733bd，不含本次修复；将保留为 pre-command-fix 备份。无剩余代码实施，人工验收 MANUAL/PENDING。

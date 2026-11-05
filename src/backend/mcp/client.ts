@@ -2,7 +2,7 @@ import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/cli
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import type { McpServer } from '../../shared/mcp';
 import { ownedProcessLaunch } from '../process-supervisor';
-import { resolveAcpProgram } from '../adapters/acp';
+import { resolveMcpCommand } from './command';
 import { redact, registerSecret } from '../security';
 
 /** Short-lived SDK connection used for diagnostics and clients without a native MCP transport. */
@@ -23,17 +23,13 @@ export async function connectMcp(
   let transport: StdioClientTransport | StreamableHTTPClientTransport;
   if (server.transport === 'stdio') {
     const environment = { ...env, ...server.env };
-    const program = resolveAcpProgram(server.command!, environment);
-    const launch = ownedProcessLaunch(
-      program.script ? env.AIROOM_NODE_EXE || process.execPath : program.file,
-      [...(program.script ? [program.file] : []), ...(server.args ?? [])],
-      cwd,
-    );
+    const program = resolveMcpCommand(server.command!, server.args ?? [], cwd, environment);
+    const launch = ownedProcessLaunch(program.command, program.args, cwd);
     transport = new StdioClientTransport({
       ...launch,
       cwd,
       env: Object.fromEntries(
-        Object.entries(environment).filter(
+        Object.entries({ ...environment, ...program.env }).filter(
           (entry): entry is [string, string] => entry[1] !== undefined,
         ),
       ),

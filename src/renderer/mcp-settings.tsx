@@ -571,7 +571,7 @@ function McpEditor({
               aria-label="MCP 启动命令"
               value={draft.command ?? ''}
               onChange={(event) => setDraft({ ...draft, command: event.target.value })}
-              placeholder="可执行文件或脚本路径"
+              placeholder="例如 codegraph、minecraft-dev-mcp、npx，或完整路径"
               required
             />
           </label>
