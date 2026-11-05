@@ -16,16 +16,22 @@ function helperPath():string {
   return found;
 }
 
-export function spawnOwned(command:string,args:string[],options:SpawnOptions & {cwd:string;env:NodeJS.ProcessEnv}):ChildProcess {
+export function ownedProcessLaunch(command:string,args:string[],cwd:string): { command: string; args: string[] } {
   if (!path.isAbsolute(command)) throw new Error('执行端必须使用已核对的绝对路径。');
   if (/\.(?:cmd|bat|ps1)$/i.test(command)) throw new Error('请使用可执行文件或 Node.js 的明确入口，不直接启动命令脚本。');
-  let child:ChildProcess;
   if (process.platform==='win32') {
-    const config=Buffer.from(JSON.stringify({command,args,cwd:options.cwd,parentPid:process.pid}),'utf8').toString('base64');
+    const config=Buffer.from(JSON.stringify({command,args,cwd,parentPid:process.pid}),'utf8').toString('base64');
     const systemRoot=process.env.SystemRoot??'C:\\Windows';
     const powershell=path.join(systemRoot,'System32','WindowsPowerShell','v1.0','powershell.exe');
-    child=spawn(powershell,['-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',helperPath(),'-Configuration',config],{...options,shell:false,stdio:['pipe','pipe','pipe'],windowsHide:true});
-  } else child=spawn(command,args,{...options,shell:false,stdio:['pipe','pipe','pipe'],detached:true});
+    return { command: powershell, args: ['-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',helperPath(),'-Configuration',config] };
+  }
+  return { command, args };
+}
+
+export function spawnOwned(command:string,args:string[],options:SpawnOptions & {cwd:string;env:NodeJS.ProcessEnv}):ChildProcess {
+  const launch = ownedProcessLaunch(command, args, options.cwd);
+  const child = spawn(launch.command, launch.args, { ...options, shell: false, stdio: ['pipe','pipe','pipe'], windowsHide: true,
+    detached: process.platform !== 'win32' });
   if (child.pid) {
     const metadata={pid:child.pid,ownerPid:process.pid,startedAt:new Date().toISOString(),command};
     owned.set(child,metadata); listener?.(metadata);

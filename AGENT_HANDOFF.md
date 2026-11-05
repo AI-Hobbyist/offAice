@@ -1,10 +1,10 @@
 # Agent Handoff
 
-当前任务：按 docs/MCP支持计划.md 完成 M1–M4，每阶段验证、单独提交并推送；最后打包绿色版压缩包。
+当前目标：按 docs/MCP支持计划.md 完成 M1–M4，严格每阶段验证、单独提交并推送；最终打包绿色版 ZIP。
 
-M1 已实现并通过配置测试（3/3）、TypeScript 和 diff 检查；待 Git 检查点。M2–M4 未开始。
-修改包括 src/backend/mcp/、src/shared/mcp.ts、RPC 白名单、Engine/worker/main 密钥桥、TOML 依赖及测试。仅 MCP 相关范围；已有 .codegraph/ 保留不提交。
-当前分支 main。推送目标 https://github.com/AI-Hobbyist/offAice.git，fetch 保留原地址；本轮截至本记录尚未提交/推送。
-验证详情：docs/records/MCP实施记录.md。Node 26.13.0 已安装；运行验证前将 D:\node\nvm\v26.13.0 前置 PATH。
-下一步：核对 M1 diff，提交并确认 push 后进入 M2；必须继续到 M4 和绿色压缩包交付，不能将 M1 视为整个任务完成。
-约束：最小范围、保留原修改、阶段按序；构建/测试前台 Tee-Object 并立即检查退出码；GUI 使用真实 Windows 窗口，Qt 禁止 offscreen；人工未验记 MANUAL/PENDING。
+M1 已完成：534b377，已推送并核对远端。M2 已实现、8/8 自动测试、类型检查及构建 PASS，Claude/Codex/DSH 各 stdio/HTTP 新建和恢复会话实际模型调用 PASS；待本阶段 Git 检查点。验证见 docs/records/MCP实施记录.md。
+M3/M4 未开始；M3 需要自绘 SVG MCP 图标。用户最新要求：AIROOM 配置独立保存，其他产品仅用于导入；已调整默认导入来源切换不影响已保存服务。
+当前 main，push 为 https://github.com/AI-Hobbyist/offAice.git；已有未跟踪 .codegraph/ 保留不提交。M2 改动尚未提交时必须保留，不能重做 M1。
+下一步：M2 提交推送确认后开始 M3 UI、真实 Windows 窗口验证，再 M4 回归打包。不能将阶段完成当作整个目标完成。
+Node 26.13.0 已通过 nvm 安装。执行前将 D:\node\nvm\v26.13.0 前置 PATH；构建/测试严格前台 PowerShell Tee-Object build.log，立即保存/检查退出码；不要同时写同一 build.log。
+GUI 使用真实 Windows 窗口，Qt 禁止 offscreen；人工未验记录 MANUAL/PENDING，不作为受阻。额度接口最近显示周池 usedPercent=6，无交接阈值触发。

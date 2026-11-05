@@ -1,3 +1,4 @@
+import { acpMcpServers } from '../mcp/execution';
 import { AcpConnection, closeAcpProcess } from './acp-connection';
 import {defaultBrowserLoginCommand,defaultBrowserLoginEnvironment} from '../login-browser';
 import { portableNode } from '../portable-node-path';
@@ -243,6 +244,7 @@ export class DshAdapter implements Adapter {
   readonly supportsRuntimeReuse = true;
   private reusable = false;
   private imagePrompts = false;
+  private mcpCapabilities: { mcpCapabilities?: { http?: boolean } } = {};
   private stamp?: string;
   private accountCheckedAt = 0;
   private closing?: Promise<void>;
@@ -484,6 +486,7 @@ export class DshAdapter implements Adapter {
       this.context?.emit('output',text,undefined,'native');
     });
     const initialized=await this.rpc.initialize(30000);
+    this.mcpCapabilities = initialized.agentCapabilities ?? {};
     this.imagePrompts = initialized.agentCapabilities?.promptCapabilities?.image === true;
     return {file,prepared,initialized};
   }
@@ -551,17 +554,18 @@ export class DshAdapter implements Adapter {
       if (!reuse) await this.launch(ctx.settings,env,ctx.cwd,ctx.session.writeMode,child=>ctx.registerProcess(child),ctx.persona,roomProjectFiles(ctx)?[roomProjectFiles(ctx)!]:[]);
       this.stamp=stamp;this.reusable=true;this.sessionClosed=false;
       if (this.stopped) return {stopped:true};
+      const mcpServers = acpMcpServers(ctx, this.mcpCapabilities);
       const nativeId=ctx.session.purpose==='room-hand'?undefined:ctx.session.nativeId;
       const resuming=Boolean(nativeId);
       if (reuse && loadedSession && loadedSession === nativeId) this.sessionId=loadedSession;
       else if (nativeId) {
         this.sessionId=nativeId;
-        const result=await this.request('session/resume',{sessionId:nativeId,cwd:ctx.cwd,mcpServers:[]});
+        const result=await this.request('session/resume',{sessionId:nativeId,cwd:ctx.cwd,mcpServers});
         this.sessionId=result.sessionId || nativeId;this.sessionState=result;
         const report=acpConfigReport(result,'dsh.resume');if(report.model)report.model=dshModelSelection(report.model).model;ctx.recordConfig?.(report);
         ctx.emit('warning','DSH 已恢复原生上下文；ACP 不回放断连期间的历史。',undefined,'lossy');
       } else {
-        const result=await this.request('session/new',{cwd:ctx.cwd,mcpServers:[]});
+        const result=await this.request('session/new',{cwd:ctx.cwd,mcpServers});
         this.sessionId=result.sessionId;this.sessionState=result;
         const report=acpConfigReport(result,'dsh.session');if(report.model)report.model=dshModelSelection(report.model).model;ctx.recordConfig?.(report);
       }

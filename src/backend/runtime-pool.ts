@@ -5,6 +5,7 @@ import type { ChildProcess } from 'node:child_process';
 import type { Adapter, AdapterContext } from '../shared/types';
 import { stopOwned } from './process-supervisor';
 import { plainRoomSpeech, roomProjectFiles } from './adapters/chat-policy';
+import { mcpFingerprint } from './mcp/config';
 
 export const ROOM_RUNTIME_IDLE_MS = 10 * 60 * 1000;
 export const ROOM_RUNTIME_LIMIT = 8;
@@ -27,7 +28,7 @@ export function runtimeFingerprint(ctx: AdapterContext, files: string[] = [], ex
     write: ctx.session.writeMode, conversation: ctx.conversation, roomSpeech:plainRoomSpeech(ctx), roomFiles:roomProjectFiles(ctx), autoApprove: ctx.session.autoApprove, permissions: id==='deepseek'?undefined:ctx.settings.permissions[id],
     model: ctx.settings.models[id], effort: ctx.settings.efforts[id], persona: ctx.persona,
     network: [ctx.settings.networkMode, ctx.settings.proxyUrl], dsh: [ctx.settings.dshProfile, ctx.settings.deepseekBaseUrl],
-    environment, files: [...new Set([...manifests,...authFiles,...configFiles])].map(fileStamp), extra };
+    environment, mcp: mcpFingerprint(ctx.mcp ?? []), files: [...new Set([...manifests,...authFiles,...configFiles])].map(fileStamp), extra };
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }
 

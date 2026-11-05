@@ -9,6 +9,7 @@ for (const [entry, outfile, format] of [
   ['src/main/preload.ts', 'dist/preload.cjs', 'cjs'],
   ['src/backend/worker.ts', 'dist/worker.mjs', 'esm'],
   ['src/backend/adapters/claude-permission-mcp.ts', 'dist/claude-permission-mcp.cjs', 'cjs'],
+  ['src/backend/mcp/launcher.ts', 'dist/mcp-launch.mjs', 'esm'],
 ]) await build({ entryPoints: [entry], outfile, bundle: true, platform: 'node', format, target: 'node24', packages: 'external', sourcemap: true });
 if(existsSync('src/backend/backup.ts'))await build({entryPoints:['src/backend/backup.ts'],outfile:'dist/backup.mjs',bundle:true,platform:'node',format:'esm',target:'node24',packages:'external',sourcemap:true});
 else await Promise.all(['dist/backup.mjs','dist/backup.mjs.map'].map(file=>rm(file,{force:true})));

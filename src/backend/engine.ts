@@ -2639,6 +2639,7 @@ export class Engine {
   async invoke(method: string, params: any = {}): Promise<unknown> {
     if (method.startsWith('mcp.')) {
       if (this.maintenance) throw new Error('正在备份或恢复资料，请等完成后再操作 MCP。');
+      if (method === 'mcp.test') return this.mcp.test(params, buildEnvironment(this.settings));
       return this.mcp.invoke(method, params);
     }
     if(method==='composer.draft.get')return new ComposerDrafts(this.store).get(params);
@@ -6509,6 +6510,9 @@ export class Engine {
         },
       };
     const ctx: AdapterContext = {
+      mcp: this.mcp.effective({ scope: 'project', projectId: project.id }),
+      mcpProjectDirectory: project.directory,
+      prepareMcp: () => this.mcp.prepare(ctx),
       run,
       session,
       conversation: project.kind === 'lounge' ? 'room' : !session.purpose && !session.flowId && !run.flowOperationId && this.store.get('desk_session_links',session.id) ? 'desk' : undefined,

@@ -1,3 +1,4 @@
+import { acpMcpServers } from '../mcp/execution';
 import { AcpConnection, closeAcpProcess } from './acp-connection';
 import { observeProgram, observeArguments, observeVersion } from '../compatibility';
 import path from 'node:path';
@@ -306,6 +307,7 @@ export class AcpAdapter implements Adapter {
       this.stamp=stamp;this.reusable=true;context.recordTiming?.('preflight');
       if (this.stopped) return { stopped: true };
       const capabilities = initialized.agentCapabilities ?? {};
+      const mcpServers = acpMcpServers(context, capabilities);
       let resumed = false, created: any;
       const nativeId=context.session.purpose==='room-hand'?undefined:context.session.nativeId;
       if(!reuse||loadedSession!==nativeId||!nativeId)this.sessionId=undefined;
@@ -313,8 +315,8 @@ export class AcpAdapter implements Adapter {
       else if (nativeId) {
         try {
           this.sessionId = nativeId;
-          if (capabilities.sessionCapabilities?.resume) this.sessionState = await this.request('session/resume', { sessionId: nativeId, cwd: context.cwd, mcpServers: [] }, 120000) ?? this.sessionState;
-          else if (capabilities.loadSession) { this.replaying = true; this.sessionState = await this.request('session/load', { sessionId: nativeId, cwd: context.cwd, mcpServers: [] }, 180000) ?? this.sessionState; }
+          if (capabilities.sessionCapabilities?.resume) this.sessionState = await this.request('session/resume', { sessionId: nativeId, cwd: context.cwd, mcpServers }, 120000) ?? this.sessionState;
+          else if (capabilities.loadSession) { this.replaying = true; this.sessionState = await this.request('session/load', { sessionId: nativeId, cwd: context.cwd, mcpServers }, 180000) ?? this.sessionState; }
           else throw new Error('程序不支持恢复会话');
           this.sessionId = nativeId; resumed = true;
         } catch (error) {
@@ -324,7 +326,7 @@ export class AcpAdapter implements Adapter {
         } finally { this.replaying = false; }
       }
       if (!this.sessionId) {
-        created = await this.request('session/new', { cwd: context.cwd, mcpServers: [] }, 60000);
+        created = await this.request('session/new', { cwd: context.cwd, mcpServers }, 60000);
         this.sessionId = created?.sessionId;
         this.sessionState = created;
         if (!this.sessionId) throw new Error(`${this.name} 没有返回会话编号。`);

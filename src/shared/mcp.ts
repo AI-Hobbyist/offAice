@@ -1,6 +1,13 @@
 export const MCP_METHODS = [
-  'mcp.list', 'mcp.save', 'mcp.delete', 'mcp.sources',
-  'mcp.import.preview', 'mcp.import.apply', 'mcp.resolve', 'mcp.source.save',
+  'mcp.list',
+  'mcp.save',
+  'mcp.delete',
+  'mcp.sources',
+  'mcp.import.preview',
+  'mcp.import.apply',
+  'mcp.resolve',
+  'mcp.source.save',
+  'mcp.test',
 ] as const;
 
 export type McpSource = 'app' | 'codex' | 'chatgpt' | 'claude-code' | 'claude-desktop' | 'file';

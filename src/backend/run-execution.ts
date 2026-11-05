@@ -154,6 +154,8 @@ export async function executeRun(host: RunExecutionHost, active: RunExecutionAct
         return;
       }
     }
+    await ctx.prepareMcp?.();
+    if (active.stopping) throw new Error('任务已停止，未连接 MCP。');
     if (ctx.conversation) {
       active.metrics = new RuntimeMetrics(host.store.dataDirectory, ctx);
       if (

@@ -1,3 +1,4 @@
+import { codexMcpConfig } from '../mcp/execution';
 import type { ChildProcess } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
@@ -288,7 +289,8 @@ export class CodexAdapter implements Adapter {
         cwd: context.cwd, modelProvider: 'openai', approvalPolicy: policy.approvalPolicy, sandbox: policy.sandbox, developerInstructions: `${CODEX_DEVELOPER_INSTRUCTIONS}\n\n${latestPersona(context.persona)}`,
       };
       const inRoom = context.run.projectId==='lounge' || Boolean(context.session.purpose?.startsWith('room-')) || context.roomRuntime;
-      const toolConfig={...codexToolConfig(context.settings.permissions.codex),...(inRoom?{'features.image_generation':context.run.imageGeneration===true&&context.settings.permissions.codex.network}:{} ),...(plainRoomSpeech(context)?{'features.shell_tool':false,'features.unified_exec':false,'features.multi_agent':false,'features.apps':false,'features.browser_use':false,'features.in_app_browser':false,web_search:'disabled'}:{}),...(roomFiles?{'features.shell_tool':true}:{})};
+      const inheritedMcp = await this.rpc.request('config/read', { includeLayers: false });
+      const toolConfig={...codexMcpConfig(context, inheritedMcp.config?.mcp_servers ?? {}),...codexToolConfig(context.settings.permissions.codex),...(inRoom?{'features.image_generation':context.run.imageGeneration===true&&context.settings.permissions.codex.network}:{} ),...(plainRoomSpeech(context)?{'features.shell_tool':false,'features.unified_exec':false,'features.multi_agent':false,'features.apps':false,'features.browser_use':false,'features.in_app_browser':false,web_search:'disabled'}:{}),...(roomFiles?{'features.shell_tool':true}:{})};
       if(Object.keys(toolConfig).length)parameters.config=toolConfig;
       // Each image request gets its own native turn/context. Large image history is not replayed or persisted.
       // Validate choices against this running CLI's catalogue when it reports one.

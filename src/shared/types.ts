@@ -364,6 +364,9 @@ export interface AiroomBridge {
   pathForFile?(file: File): string;
 }
 export interface AdapterContext {
+  mcp?: import('./mcp').McpEntry[];
+  mcpProjectDirectory?: string;
+  prepareMcp?(): Promise<void>;
   recordConfig?(config: Omit<import('./executor-config').EffectiveRunConfig, 'at'>): void;
   run: Run; session: Session; settings: Settings; cwd: string; env: NodeJS.ProcessEnv;
   /** Positively identified chat surfaces. Flow tasks keep their complete task briefing. */

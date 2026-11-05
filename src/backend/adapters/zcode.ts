@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { executableServers } from '../mcp/execution';
 import {createHash} from 'node:crypto';
 import {zcodeInput} from './zcode-input';
 import { latestPersona, nativeContextNeedsRefresh } from '../native-context';
@@ -80,6 +81,7 @@ export class ZcodeAdapter implements Adapter{
     return {method:`${zcodeAccountName(account)} 官方浏览器登录`};
   }
   async start(context:AdapterContext,text:string):Promise<AdapterResult>{
+    if (executableServers(context).length) throw new Error('ZCode 当前原生接口尚未提供已核验的 MCP 配置入口；请选择支持 MCP 的执行端。');
     if(this.child&&this.child.exitCode===null&&this.child.signalCode===null)throw new Error('ZCode 已有正在进行的任务。');this.child=undefined;this.stopped=false;
     const base=this.environment(context.env),permissions=context.settings.permissions[this.executor.id]??this.executor.permissions??ACP_DEFAULT_PERMISSIONS;
     const command=this.command(base),env=this.modelEnvironment(base,command),account=zcodeAccount(this.executor.authentication),state=zcodeAccountState(env.ZCODE_DATA_BASE_DIR!,command.path,account,env);
