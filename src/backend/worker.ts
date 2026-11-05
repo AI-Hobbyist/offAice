@@ -19,6 +19,7 @@ setOwnershipListener(info => send({ type: 'ownership', info }));
   if (event.data?.type !== 'connect' || !event.ports?.[0] || port) return;
   port = event.ports[0];
   engine = new Engine(event.data.dataDirectory, publish, () => {});
+  if (event.data.mcpKey) engine.mcp.setKey(event.data.mcpKey);
   engine.setKey(event.data.key || undefined);
   engine.setAcpSecrets(event.data.acpSecrets || {});
   claudeToken(event.data.claudeToken || undefined);

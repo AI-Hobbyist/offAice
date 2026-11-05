@@ -2,9 +2,11 @@ import { ROUNDTABLE_READS, ROUNDTABLE_WRITES } from './roundtable';
 import { AUTOMATION_RPC_METHODS } from './automation';
 import { PROJECT_FLOW_METHODS } from './project-flow';
 import { PROJECT_TREE_METHODS } from './project-tree';
+import { MCP_METHODS } from './mcp';
 
 /** Every request the workbench window may send. The main process rejects any other name. */
 export const RENDERER_METHODS: readonly string[] = [
+  ...MCP_METHODS,
   'snapshot',
   'backend.restart',
   'provider.probe',

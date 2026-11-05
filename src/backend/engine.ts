@@ -1,4 +1,5 @@
 import { formatCorrectionSummary } from "./format-corrections";
+import { McpService } from './mcp/service';
 import { executeRun, type RunExecutionActive } from './run-execution';
 import {logoutProvider} from './provider-logout';
 import { discussionCallLimits } from "../shared/discussion-budget";
@@ -271,6 +272,7 @@ const bounded = (
 };
 type Active = RunExecutionActive;
 export class Engine {
+  readonly mcp: McpService;
   readonly store: Store;
   private fingerprints?: ProgramFingerprintStore;
   readonly bootId = randomUUID();
@@ -399,6 +401,7 @@ export class Engine {
       limit: timing?.runtimeLimit,
     });
     this.store = new Store(dataDirectory);
+    this.mcp = new McpService(this.store);
     // Replay protection only needs recent request IDs; then reclaim the space deleted records left behind.
     this.store.retainNewest(RECEIPT_RETENTION);
     this.store.compact();
@@ -2634,6 +2637,10 @@ export class Engine {
     return this.providers;
   }
   async invoke(method: string, params: any = {}): Promise<unknown> {
+    if (method.startsWith('mcp.')) {
+      if (this.maintenance) throw new Error('正在备份或恢复资料，请等完成后再操作 MCP。');
+      return this.mcp.invoke(method, params);
+    }
     if(method==='composer.draft.get')return new ComposerDrafts(this.store).get(params);
     if(method==='composer.draft.save'){
       if(this.maintenance)throw new Error('正在备份或恢复资料，请等完成后再保存草稿。');

@@ -3,7 +3,7 @@ import { OPENABLE_DOCUMENT } from '../shared/round-results';
 import { catalogEntry, catalogProvider } from '../shared/executor-catalog';
 import { app, BrowserWindow, dialog, ipcMain, shell, screen, utilityProcess, MessageChannelMain, safeStorage, Tray, Menu, nativeImage, nativeTheme, powerMonitor, protocol, net, type UtilityProcess } from 'electron';
 import { appendFileSync, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { RENDERER_METHODS } from '../shared/rpc-methods';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -153,6 +153,14 @@ async function emergencyStop() {
   return { received: true, detail: '执行服务与本应用的成员已停止，旧结果待核对' };
 }
 function secretFile() { return path.join(dataDirectory, 'deepseek.secret'); }
+function mcpConfigKey(): string | undefined {
+  if (!safeStorage.isEncryptionAvailable()) return;
+  const file = path.join(dataDirectory, 'secrets', 'mcp-key.secret');
+  if (existsSync(file)) return safeStorage.decryptString(readFileSync(file));
+  const key = randomBytes(32).toString('base64');
+  writeEncryptedSecret(file, key);
+  return key;
+}
 /** Claude's long-lived subscription token from `claude setup-token`, encrypted with the system's credential protection. */
 function claudeTokenFile() { return path.join(dataDirectory, 'claude-token.secret'); }
 const claudeApiFile=()=>path.join(dataDirectory,'secrets','claude-api.secret');
@@ -226,7 +234,7 @@ function startBackend() {
   worker = utilityProcess.fork(path.join(dist, 'worker.mjs'), [], { cwd: root, env, serviceName: 'AIROOM 执行服务', stdio: 'pipe' });
   const ownWorker=worker,ownPort=port;let resyncPending=false;
   worker.stderr?.on('data', data => {if(worker!==ownWorker)return;const text = redact(String(data)); if (!/ExperimentalWarning|Use .--trace-warnings/.test(text)) push({ type: 'backend', ready, message: text.slice(-2000) }); });
-  worker.on('spawn', () => {if(worker===ownWorker)ownWorker.postMessage({ type: 'connect', dataDirectory, key: storedKey(), claudeToken: storedClaudeToken(), claudeApiKey: storedClaudeApiKey(), acpSecrets: allAcpSecrets() }, [channel.port2]);});
+  worker.on('spawn', () => {if(worker===ownWorker)ownWorker.postMessage({ type: 'connect', dataDirectory, key: storedKey(), mcpKey: mcpConfigKey(), claudeToken: storedClaudeToken(), claudeApiKey: storedClaudeApiKey(), acpSecrets: allAcpSecrets() }, [channel.port2]);});
   port.on('message', event => {
     if(worker!==ownWorker||port!==ownPort||!backendReadiness.current(generation))return;
     const packet = event.data;
