@@ -1,6 +1,6 @@
 # Agent Handoff
 
-最新任务：个人资料自我介绍及上下文接入已完成并推送。当前绿色包与验证以文末“个人资料自我介绍”记录为准；之前交付均为历史版本。最终文档提交以 git log 为准。
+最新任务：自我介绍保存后重启丢失已修复并推送。当前绿色包与完整进程重启验证以文末“自我介绍保存后重启丢失”记录为准；之前交付均为历史版本。最终文档提交以 git log 为准。
 
 ## 当前任务最终状态
 
@@ -118,4 +118,4 @@ ZCode 暂不支持，其他 ACP 的 HTTP 需声明能力；旧 HTTP+SSE 不在�
 
 验证：同一真实窗口完整进程退出/重启回归 GREEN，重开后介绍保留；tsc、生产构建和包含原 MCP/审批/访问模式的 UI 回归 PASS。测试补充切换分类保留草稿，最终绿色包会再次执行全部界面步骤。未改后端存储格式或用户原资料，本轮未调用模型。
 
-当前 main，待修复提交/推送及绿色包最终验证。旧包将保留为 pre-profile-save-fix-*。无其他实施阶段；人工验收 MANUAL/PENDING。额度接口 usedPercent=11，未触发交接。
+当前 main；修复提交 84cb8f3650f5efda19dcaac707c98ea04a102b4f 已推送 origin/main。绿色包 release/AIROOM-0.1.0-Windows-x64-Green.zip，源提交为该提交，sourceDirty=false；172650274 字节，SHA256 b3669c7540cdba260372981bb99ba21ec866b22eff5a52ba3ad1dce81f7f3827。7560 个解压文件哈希一致、171 个生产依赖校验 PASS。最终解压 AIROOM.exe 的真实窗口回归 PASS：填写介绍后切换分类仍保留、点击底部保存设置、完整退出进程并重启同一资料目录，介绍仍保留；packaged=true、visible=true，中文及布局正常。旧 ZIP/摘要/收据保留为 release/pre-profile-save-fix-*。签名 NotSigned；无剩余实施，无实际阻碍；用户人工验收 MANUAL/PENDING。额度接口 usedPercent=11，未触发交接。
