@@ -79,3 +79,11 @@ ZCode 暂不支持，其他 ACP 的 HTTP 需声明能力；旧 HTTP+SSE 不在�
 用户询问 OMP 项目独立配置：用真实 readMcpSource 只读检查 D:/UserData/Desktop/Project/OMP/OMP_26.1.2/.codex/config.toml，识别 minecraft-dev，stdio，enabled=true，issues=[]。已说明项目范围选 OMP、来源 Codex、预览/应用导入；未修改原文件或用户 AIROOM 数据。继续遵循其他产品配置仅用于导入的约定。
 
 当前 main；实施提交 88cc2473d7c43811be91c0ba09d9d509acba2d1e 已推送 origin/main。新版绿色包源提交为该提交，sourceDirty=false；release/AIROOM-0.1.0-Windows-x64-Green.zip，172647593 字节，SHA256 54d2337e8aaac382346ce52309e4322134c8bd221dbea1624dba73687febd825。7560 个解压文件哈希一致，171 个生产依赖校验 PASS；最终解压 AIROOM.exe 的真实 Windows MCP UI 授权/撤销及 stdio/HTTP 测试 PASS，packaged=true、visible=true，中文正常。旧包/摘要/收据保存为 release/pre-meeting-mcp-*。签名 NotSigned。无剩余实施，无实际阻碍；用户人工验收 MANUAL/PENDING。额度接口 usedPercent=9，未触发交接。
+
+## 2026-11-05：项目会议审批无法交互（修复已验证）
+
+根因：项目会议没有 ApprovalCard，而待处理入口仅导航回会议；MCP 信任请求虽已挂起并进入 attention，用户没有可提交答案的界面。修复在 App 复用现有 Modal/ApprovalCard：当前项目会议的 pending 审批自动弹出，关闭仅暂时收起；attention 的 approvalId 可重新打开。按请求 ID 重置答案和焦点；回答/过期后关闭，不自动批准。
+
+真实窗口回归先运行已发布 88cc247 程序，等待 MCP 确认对话框 5 秒超时（RED）。修复后真实 Windows 窗口 PASS：自动弹出、关闭、待处理重开、信任并启用提交 allow、结构化问题选择和答案提交。新增 fixtures/approval-window.mjs 用固定 snapshot 和独立 preload 驱动真实生产 renderer，不连接真实账号、不调用模型，不冒称后端端到端验证。初次结构化问题 fixture 继承了 answered 状态，修正为 pending 后 PASS。原有 MCP 设置 stdio/HTTP 真实连接与会议授权/撤销一并 PASS。tsc、生产构建 PASS。最终包还将等待动画稳定后检查截图。
+
+本轮只修改 renderer 审批入口、UI 测试与说明，不改变后端信任/审批规则。当前 main，待修复提交/推送与绿色包最终窗口验收；旧包将保存为 pre-approval-dialog-*。人工验收 MANUAL/PENDING，无额外功能阶段。

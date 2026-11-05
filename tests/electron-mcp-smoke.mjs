@@ -4,6 +4,7 @@ import path from 'node:path';
 import { createServer } from 'node:http';
 import { _electron as electron } from '@playwright/test';
 import { respond } from './fixtures/mcp-echo.mjs';
+import { verifyMeetingApproval } from './fixtures/approval-window.mjs';
 
 const root = process.cwd();
 const results = path.join(root, '.test-cache', 'mcp-ui');
@@ -149,6 +150,7 @@ try {
   await page.screenshot({ path: path.join(results, 'mcp-meeting.png') });
   await meetingMcp.click();
   await page.getByText('MCP 未授权', { exact: true }).waitFor();
+  await verifyMeetingApproval(app, page, project, results);
   assert.deepEqual(errors, []);
   const snapshot = await page.evaluate(() => window.airoom.invoke('mcp.list', { scope: 'global' }));
   assert.ok(!JSON.stringify(snapshot).includes('mcp-ui-private-123456'));
@@ -170,6 +172,7 @@ try {
           'test-result-persistence',
           'project-direct-entry',
           'meeting-mcp-authorize-revoke',
+          'meeting-approval-dialog-answer-reopen',
         ],
         at: new Date().toISOString(),
       },

@@ -10,6 +10,7 @@ import { isConversationSession } from '../shared/session-classification';
 import { idleActivity } from './life-status';
 import { unwrapProjectFlowReply } from '../shared/project-flow';
 import { AttentionEntry } from './attention';
+import { ApprovalCard } from './panels';
 import type { AttentionItem } from '../shared/attention';
 import type { RoomFocus } from './room';
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -110,6 +111,8 @@ export default function App() {
   const [renaming, setRenaming] = useState<{ kind: 'session' | 'project'; id: string; value: string } | null>(null);
   const [confirm, setConfirm] = useState<{ kind: 'delete-session' | 'remove-project' | 'discard'; id: string; discard: boolean } | null>(null);
   const [switcher, setSwitcher] = useState(false);
+  const [approvalId, setApprovalId] = useState<string>();
+  const [dismissedApprovals, setDismissedApprovals] = useState<Set<string>>(() => new Set());
   useSegmentedIndicator();
   const toastCounter = useRef(0);
 
@@ -155,6 +158,7 @@ export default function App() {
   function openSettings(tab: SettingsTab = 'members', editing: string | null = null, focus: string | null = null) { setSettingsTab(tab); setSettingsEditing(editing); setSettingsFocus(focus); setModal('settings'); }
   /** A pending item opens where it can be handled; opening never answers, resends, accepts or applies anything. */
   function openAttention(item: AttentionItem) {
+    if (item.approvalId) setApprovalId(item.approvalId);
     if(item.jointReviewId){const topic=snapshot.roundtable?.topics.find(t=>t.reviewId===item.jointReviewId);if(topic){setRoundtableRequest({topicId:topic.id,nonce:Date.now()});setView('roundtable');setSessionId('');return;}if(item.projectId){setProjectId(item.projectId);setView('project');setSessionId('');return;}}
     if(item.action.view==='member-settings'){openSettings('members',null,item.provider??item.memberId??null);return;}
     if(item.action.view==='room'){setView('room');setSessionId('');setRoomFocus({threadId:item.threadId,messageId:item.messageId,nonce:Date.now()});return;}
@@ -227,6 +231,25 @@ export default function App() {
   }, [snapshot.sessions,snapshot.rooms,snapshot.runs]);
   useMemberNotifications(snapshot, firstInput, openFromNotice, team);
   const pendingApprovals = snapshot.approvals.filter(approval => approval.state === 'pending');
+  const activeApproval = pendingApprovals.find(approval => approval.id === approvalId);
+  const approvalSession = snapshot.sessions.find(session => session.id === activeApproval?.sessionId);
+  useEffect(() => {
+    if (approvalId && !pendingApprovals.some(approval => approval.id === approvalId)) {
+      setApprovalId(undefined);
+      return;
+    }
+    if (approvalId || modal || view !== 'project') return;
+    const next = pendingApprovals.find(approval =>
+      !dismissedApprovals.has(approval.id) && snapshot.sessions.some(session =>
+        session.id === approval.sessionId && session.roomId === `project:${projectId}`,
+      ),
+    );
+    if (next) setApprovalId(next.id);
+  }, [approvalId, pendingApprovals, dismissedApprovals, snapshot.sessions, view, projectId, modal]);
+  function closeApproval() {
+    if (approvalId) setDismissedApprovals(previous => new Set([...previous, approvalId]));
+    setApprovalId(undefined);
+  }
   const allRunning = snapshot.runs.filter(run => isActiveRun(run) || run.status === 'queued');
   // Each member's mood comes from the runs of their own sessions (custom members included).
   const memberOfSession = useMemo(() => new Map(snapshot.sessions.map(item => [item.id, memberIdOf(item)])), [snapshot.sessions]);
@@ -390,6 +413,18 @@ export default function App() {
 
     </ErrorBoundary>}
     {memberStop&&<Modal title={'中止 '+(team.get(memberStop.memberId)?.name??'这位成员')} subtitle={'将停止 '+memberStop.runs.length+' 项当前运行，其他成员保留。'} onClose={()=>{if(!memberStopping)setMemberStop(undefined);}}><div className="modal-body"><ul>{memberStop.runs.map(run=><li key={run.runId}><strong>{run.location}{run.projectName?' · '+run.projectName:''}</strong><p>{run.title}</p></li>)}</ul><p>已保存的发言和文件版本保留；结果未知的请求不会自动重发。</p>{memberStopError&&<p role="alert" className="task-meta bad">{memberStopError}</p>}</div><div className="modal-footer"><button className="button quiet" disabled={memberStopping} onClick={()=>setMemberStop(undefined)}>取消</button><button className="button danger" disabled={memberStopping||!memberStop.runs.length} onClick={()=>void confirmMemberStop()}>确认中止这位成员</button></div></Modal>}
+    {activeApproval && (
+      <Modal key={activeApproval.id} title={activeApproval.title} onClose={closeApproval}>
+        <div className="modal-body">
+          <ApprovalCard
+            key={activeApproval.id}
+            approval={activeApproval}
+            invoke={invoke}
+            member={approvalSession ? team.ofSession(approvalSession) : undefined}
+          />
+        </div>
+      </Modal>
+    )}
     {quotaOpen&&<QuotaOverview snapshot={snapshot} invoke={invoke} onClose={()=>setQuotaOpen(false)}/>}
     {automationOpen&&<AutomationPanel snapshot={snapshot} invoke={invoke} notify={notify} onClose={()=>setAutomationOpen(false)}/>}
     <ContextMenu menu={menu} onClose={() => setMenu(null)} />
