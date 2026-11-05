@@ -1,7 +1,7 @@
 # MCP 支持实施计划
 
 日期：2026-11-05
-状态：实施中。M1 已提交并推送（534b377）；M2 已提交并推送（a0e0821）；M3 已提交并推送（744b642）；M4 自动验证与候选打包程序验收通过，待 Git 检查点。最终绿色 ZIP 待从干净提交生成。
+状态：M1–M4 已按序完成，各阶段已单独提交并推送。绿色 ZIP 的压缩/解压校验及最终打包程序真实 Windows 窗口验收通过。人工验收 MANUAL/PENDING。
 
 ## 1. 目标与范围
 
@@ -138,19 +138,14 @@
 
 所有构建和测试遵守前台 PowerShell `2>&1 | Tee-Object -FilePath "build.log"`，立即保存并检查 LASTEXITCODE；失败读取日志诊断。GUI 验证使用实际 Windows 窗口；涉及 Qt 时严格禁止 offscreen。人工项未执行记录 MANUAL/PENDING，不作为受阻条件，不冒记 PASS。
 
-## 9. 当前状态与实施前核验
+## 9. 最终状态
 
-- 已完成：代码入口盘点、复用方案、作用域和默认来源规则、阶段与验收设计。
-- M1：配置/来源/RPC 已实施；配置测试 3/3 PASS、tsc --noEmit PASS、git diff --check PASS。执行端及 GUI 尚未验证。
-- M2 开始时核验：安装执行端的准确 schema/能力；Codex 合并及禁用语义；DSH/外接 ACP 的 HTTP 能力；Claude Desktop 官方文件位置；SDK 与当前 Node/Electron 的兼容性。
-- 这些是相应阶段的首个验证任务，不预先扩展成新架构或额外兼容层。
-- M1 检查点：534b377，已确认远端提交一致。
-- M2：Claude/Codex/ACP/DSH 原生接入、权限与信任、SDK 诊断和 cwd helper 已实施。8/8 自动测试、类型检查、构建通过；Codex/Claude/DSH 各两种传输的新建及恢复会话真实调用通过。
-- M2 检查点：a0e0821，已确认远端提交一致。
-- M3：全局/项目界面、自绘 SVG、来源导入、编辑与测试结果保存已完成；真实 Windows Electron 窗口自动化 PASS，截图中文无方框，类型检查和构建 PASS。
-- M3 检查点：744b642，已确认远端提交一致。
-- M4：两级 AGENTS、角色卡优先、配置独立性、权限与生命周期回归完成；13/13 自动测试、类型检查、候选打包程序真实窗口测试 PASS。
-- 下一步：完成 M4 提交和推送，使用干净提交生成并验证最终绿色 ZIP。
+- M1：534b377；M2：a0e0821；M3：744b642；M4：bf733bd。均已单独提交、推送并核对远端后才进入下一阶段。
+- 13/13 自动测试、类型检查、构建通过。Claude/Codex/DSH 的 stdio/HTTP 新建与恢复会话实际工具调用通过；两级 AGENTS 的实际模型角色卡优先测试通过。
+- 最终绿色包：`release/AIROOM-0.1.0-Windows-x64-Green.zip`，源提交 bf733bd，sourceDirty=false。完整性校验和 7560 个解压文件哈希校验通过；最终解压程序 app.isPackaged=true、真实 Windows 可见窗口自动化通过。
+- 已实现用户补充：AIROOM 独立保存、其他仅导入；自绘 SVG 图标；用户 `.airoom/AGENTS.md` 与项目 `AGENTS.md`，不覆盖角色卡。
+- 支持边界：旧 HTTP+SSE 不在本期；其他 ACP 的 HTTP 需执行端声明；ZCode 暂未开放；ChatGPT 云端仅导出或手工 URL，不伪称读取云端账号配置。
+- 人工验收：MANUAL/PENDING；不作为受阻条件。无剩余实施任务，不编造后续阶段。
 
 ## 10. 官方参考
 

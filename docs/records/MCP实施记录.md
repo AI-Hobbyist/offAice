@@ -50,3 +50,15 @@
 - 此候选目录用于阶段验收，manifest.sourceDirty=true，不作为最终交付。最终 ZIP 必须在本阶段提交/推送后重新从干净源生成。
 - 使用说明：docs/MCP与AGENTS使用说明.md。未扩展 ZCode 架构；其未核验接口状态明确显示，不宣称支持。
 - 人工验收：MANUAL/PENDING（可自主验证均已完成，不作为任务受阻条件）。
+
+## 最终绿色版交付 — 2026-11-05
+
+- M4 已提交/推送：bf733bde157cf88b0131b5cf012916c315d68073；已核对远端 main。
+- `npm run package:green`：PASS。从干净源重新构建，sourceDirty=false。
+- ZIP：release/AIROOM-0.1.0-Windows-x64-Green.zip；172646527 字节（约 164.6 MiB）。
+- SHA256：`d6f443a97f740862808d03731b2b4b743dbd35ecc0c97418394fb50e267f90f5`；对应 .zip.sha256 文件已生成，独立重算匹配。
+- 压缩完整性 PASS，7560 个解压文件哈希一致，171 个生产依赖验证通过。没有打包用户资料、密钥、模型 CLI 或测试数据。
+- 直接运行最终 ZIP 校验解压出的 AIROOM.exe：真实 Windows 可见窗口、app.isPackaged=true；全局/项目配置、导入、编辑脱敏、两种连接、持久化结果和项目菜单入口再次 PASS。
+- 最终回执：release/green-receipt.json，desktopAcceptance=passed；UI 回执 .test-cache/mcp-ui/receipt.json；已检视最终截图，中文正常无方框。
+- Windows 签名状态：NotSigned；未声明有受信任代码签名。人工使用验收 MANUAL/PENDING。
+- 无剩余实施工作。后续改动应另行定义范围；现有 .codegraph/ 保留不提交。
