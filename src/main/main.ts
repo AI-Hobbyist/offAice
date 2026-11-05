@@ -425,6 +425,11 @@ function registerIpc() {
       await request('internal.claudeApiKey',{value:value||undefined});await request('internal.provider.invalidate',{provider:'claude'});void request('provider.probe',{provider:'claude'}).catch(()=>{});return {saved:!!value};
     }
     if (method === 'executor.delete') { const result = await request('executor.delete', params); if (typeof params?.id === 'string') writeAcpSecrets(params.id, {}); return result; }
+    if (method === 'dialog.mcpConfig') {
+      const result = await dialog.showOpenDialog(window!, { properties: ['openFile'], title: '选择 MCP 配置文件',
+        filters: [{ name: 'MCP 配置', extensions: ['json', 'toml'] }] });
+      return result.canceled ? null : result.filePaths[0];
+    }
     if (method === 'dialog.program') {
       const result = await dialog.showOpenDialog(window!, { properties: ['openFile'], title: '选择 AI 程序', filters: [{ name: '程序或脚本', extensions: ['exe', 'cmd', 'js', 'mjs', 'cjs'] }, { name: '所有文件', extensions: ['*'] }] });
       return result.canceled ? null : result.filePaths[0];

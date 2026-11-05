@@ -7,6 +7,7 @@ import { MCP_METHODS } from './mcp';
 /** Every request the workbench window may send. The main process rejects any other name. */
 export const RENDERER_METHODS: readonly string[] = [
   ...MCP_METHODS,
+  'dialog.mcpConfig',
   'snapshot',
   'backend.restart',
   'provider.probe',

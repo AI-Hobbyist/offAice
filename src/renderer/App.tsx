@@ -1,3 +1,4 @@
+import { McpIcon } from './mcp-icon';
 import {applySnapshotPatch,acceptSnapshot} from '../shared/snapshot-sync';
 import { ProjectRoom } from './project-room';
 import {MemberReports} from './member-reports';
@@ -283,6 +284,7 @@ export default function App() {
   function projectMenuItems(target: Project): MenuItem[] {
     const busy = snapshot.sessions.some(item => item.projectId === target.id && isBusy(snapshot, item.id)),hasChildren=descendantIds(snapshot.projects,target.id).length>1;
     return [
+      {label:'MCP 配置…',icon:<McpIcon size={14}/>,onSelect:()=>openSettings('mcp',null,target.id)},
       {label:'添加子项目…',icon:<Plus size={14}/>,onSelect:()=>setHierarchy({mode:'child',target})},
       {label:'归属与修改范围…',icon:<GitMerge size={14}/>,onSelect:()=>setHierarchy({mode:'move',target})},
       { label: '重命名', icon: <Pencil size={14} />, onSelect: () => setRenaming({ kind: 'project', id: target.id, value: target.name }) },

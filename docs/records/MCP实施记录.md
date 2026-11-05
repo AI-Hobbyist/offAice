@@ -25,3 +25,15 @@
 - SDK HTTP 测试还覆盖 JSON/SSE 响应、401 和启动超时；本机 loopback 在受限环境被拦，已在正常权限环境完成验证。
 - 用户补充：AIROOM 独立保存自己的 MCP 配置，其他仅用于导入；默认导入来源切换不删除/禁用已保存服务。对应测试已更新并通过。
 - 下一阶段 M3 包含用户要求的自绘 SVG 图标。M3/M4 尚未实施。
+
+## M3 — 2026-11-05
+
+- M2 已提交/推送：a0e08216a476debadb4e881c2db9ead243a61270，已核对远端 main。
+- 全局设置 MCP 页、项目菜单及项目会议室入口；自绘 SVG 连接图标；导入预览/取消/应用、编辑、启用禁用、恢复继承、测试连接、兼容状态。
+- 测试结果独立保存，按服务配置指纹失效；密钥/参数回读仍脱敏。
+- `node scripts/build.mjs`、`tsc --noEmit`：PASS。
+- `node --import tsx scripts/desktop-smoke.mjs tests/electron-mcp-smoke.mjs`：真实 Windows 可见窗口 PASS。覆盖导入预览/取消/应用、编辑脱敏、stdio/HTTP 连接、项目禁用覆盖、来源切换保留服务、测试结果持久化、项目菜单直接入口。
+- 已检视 .test-cache/mcp-ui/mcp-settings.png：中文正常，无 tofu；布局与自绘图标正常。回执 .test-cache/mcp-ui/receipt.json 记录窗口 visible=true，1480×970。
+- 补齐锁定版本 Electron 官方二进制后完成测试；测试等待正式 snapshot 就绪，不使用固定启动延时。退出改用正常 app.close，避免强退遗留后端。
+- 测试使用临时复制的生产依赖和独立、退出登录资料目录；没有修改用户日常配置。隔离测试缓存保留用于验证，不打包。
+- 用户新授权：M4 读取用户 .airoom/AGENTS.md 与项目 AGENTS.md，角色卡保持独立且优先。

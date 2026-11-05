@@ -9,7 +9,7 @@ import { copyProductionDependencies } from './runtime-dependencies.mjs';
 
 const root=fileURLToPath(new URL('..',import.meta.url));
 const testFile=process.argv[2]??'tests/electron-smoke.mjs';
-if(!['tests/electron-smoke.mjs','tests/electron-restart-smoke.mjs'].includes(testFile))throw new Error('Unknown desktop test.');
+if(!['tests/electron-smoke.mjs','tests/electron-restart-smoke.mjs','tests/electron-mcp-smoke.mjs'].includes(testFile))throw new Error('Unknown desktop test.');
 const parent=path.resolve(process.env.AIROOM_DESKTOP_RUNTIME_PARENT??path.join(process.env.LOCALAPPDATA??path.join(process.env.USERPROFILE??root,'AppData','Local'),'Temp'));
 const {directory,env}=isolatedTestEnvironment(process.env,root);
 // npm run prepends development CLI wrappers. They are absent when a user opens the distribution.

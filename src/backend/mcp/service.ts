@@ -9,6 +9,7 @@ import {
   type McpScope,
   type McpSource,
   type McpView,
+  type McpTestResult,
 } from '../../shared/mcp';
 import { maskedServer, mcpFingerprint, resolveMcp, restoreMasked, validateServer } from './config';
 import { activeMcp, mcpRestriction } from './execution';
@@ -106,7 +107,16 @@ export class McpService {
 
   private view(scope: McpScope): McpView {
     const config = this.read(scope);
+    const tests: Record<string, McpTestResult> = {};
+    for (const entry of this.effective(scope)) {
+      const record = this.store.get<{ fingerprint: string; result: McpTestResult }>(
+        'mcp_tests',
+        `${this.id(scope)}:${entry.server.name}`,
+      );
+      if (record?.fingerprint === mcpFingerprint([entry])) tests[entry.server.name] = record.result;
+    }
     return {
+      tests,
       scope,
       source: this.selected(scope),
       inheritsSource: scope.scope === 'project' && !config.source,
@@ -161,18 +171,19 @@ export class McpService {
     const cwd = entry.server.cwd ? path.resolve(root, entry.server.cwd) : root;
     const { connectMcp } = await import('./client');
     let connection: Awaited<ReturnType<typeof connectMcp>> | undefined;
+    let result: McpTestResult;
     try {
       connection = await connectMcp(entry.server, cwd, env);
       const listing = await connection.client.listTools(undefined, {
         timeout: entry.server.toolTimeoutMs ?? 60000,
       });
-      return {
+      result = {
         status: 'connected',
         tools: listing.tools.map((tool) => tool.name),
         at: new Date().toISOString(),
       };
     } catch (error) {
-      return {
+      result = {
         status: /401|403|Unauthorized/i.test((error as Error).message)
           ? 'authentication-required'
           : 'failed',
@@ -182,6 +193,11 @@ export class McpService {
     } finally {
       await connection?.close();
     }
+    this.store.put('mcp_tests', `${this.id(scope)}:${entry.server.name}`, {
+      fingerprint: mcpFingerprint([entry]),
+      result,
+    });
+    return result;
   }
 
   async invoke(method: string, params: any = {}): Promise<unknown> {

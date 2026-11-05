@@ -43,11 +43,19 @@ export interface McpConfiguration {
 }
 
 export interface McpView {
+  tests: Record<string, McpTestResult>;
   scope: McpScope;
   source: McpSource;
   inheritsSource: boolean;
   overrides: McpServer[];
   effective: McpEntry[];
+}
+
+export interface McpTestResult {
+  status: 'connected' | 'authentication-required' | 'failed';
+  tools?: string[];
+  detail?: string;
+  at: string;
 }
 
 export interface McpImportPreview {

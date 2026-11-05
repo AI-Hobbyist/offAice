@@ -1,4 +1,6 @@
 import { ActiveRunProgress } from './run-progress';
+import { McpSettings } from './mcp-settings';
+import { McpIcon } from './mcp-icon';
 import {joinClauses,plainFlowError,readableContent} from '../shared/content-presentation';
 import {workspaceLocation} from './workspace-location';
 import { memberUserSummary, reportForDisplay } from '../shared/report-presentation';
@@ -73,6 +75,7 @@ export function ProjectRoom({ snapshot, project, invoke, onOpenSession,onRoundta
   useEffect(()=>{setConfig(null);setConfigError('');},[project.id]);
   useEffect(()=>setLogTarget(null),[project.id]);
   const roomId = `project:${project.id}` as RoomId;
+  const [mcpOpen, setMcpOpen] = useState(false);
   const [data, setData] = useState<ProjectFlowSnapshot | null>(null), [error, setError] = useState('');
   const [busy, setBusy] = useState(false), [starting, setStarting] = useState(false), [picking, setPicking] = useState(false);
   const [newReviewLevel,setNewReviewLevel]=useState<ReviewLevel>('medium'), [dockOpen, setDockOpen] = useState(true);
@@ -205,6 +208,7 @@ export function ProjectRoom({ snapshot, project, invoke, onOpenSession,onRoundta
 
   return <main className="project-room" aria-label={`${project.name} 的项目会议室`}>
     <header className="project-room-head">
+      <button type="button" className="icon-button" aria-label="项目 MCP 配置" title="项目 MCP 配置" onClick={() => setMcpOpen(true)}><McpIcon size={19} /></button>
       <span className="project-room-icon"><FolderOpen size={19} /></span>
       <div className="project-room-title"><h1>{project.name}<small>项目会议室</small></h1>{flow&&live&&data?.overview.stage?<p className="project-stage" aria-label="当前阶段" title={`项目原目录：${project.directory}
 任务在独立副本中执行，验收后写回。`}>{currentRound && flow.status === 'active' && <strong>第 {currentRound.index + 1} 轮「{currentRound.title}」 · </strong>}{data.overview.stage.label} · 本轮负责人 <MemberName id={data.overview.stage.leadMemberId??flow.leadMemberId}/> · {REVIEW_LEVEL_LABELS[reviewLevel(flow)]}</p>:<p title={`项目原目录：${project.directory}
@@ -247,6 +251,7 @@ export function ProjectRoom({ snapshot, project, invoke, onOpenSession,onRoundta
         onReassign={(task, memberId) => mutate('projectFlow.task.reassign', { taskId: task.id, expectedRevision: task.revision, memberId }, '已换人，新成员会从头接手这项任务。')} />}
       </div>}
     </div>}
+    {mcpOpen && <Modal title={project.name + ' · MCP 配置'} className="mcp-project-modal" onClose={() => setMcpOpen(false)}><div className="modal-body"><McpSettings invoke={invoke} projects={snapshot.projects} projectId={project.id} /></div></Modal>}
     {logTarget&&<WorkLog key={project.id+logTarget.kind+logTarget.id} project={project} target={logTarget} invoke={invoke} onClose={()=>setLogTarget(null)}/>}
     {recordOpen&&flow&&<ProjectRecordView project={project} flowId={flow.id} invoke={invoke} onClose={()=>setRecordOpen(false)}/>}
     {addition&&data&&<TaskAdditionView data={data} memberId={addition.memberId} initialGoal={addition.goal} supplementTask={addition.task} initialProposal={addition.proposal} invoke={invoke} onClose={()=>setAddition(null)} onDone={()=>void load()}/>}

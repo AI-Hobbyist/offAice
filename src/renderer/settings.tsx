@@ -1,4 +1,6 @@
 import { connectionLabel } from '../shared/executor-connection';
+import { McpSettings } from './mcp-settings';
+import { McpIcon } from './mcp-icon';
 import {ProviderLogin} from './provider-login';
 import { ModelPicker } from './model-picker';
 export { ModelPicker } from './model-picker';
@@ -26,7 +28,7 @@ import { roomBackdropEnabled, setRoomBackdropEnabled } from './room-backdrop';
 export type Installs = Partial<Record<ProviderId, { version: string; startedAt: number }>>;
 export type ThemeChoice = 'system' | 'light' | 'dark';
 
-export type SettingsTab = 'members' | 'connections' | 'profile' | 'permissions' | 'network' | 'workspace';
+export type SettingsTab = 'members' | 'connections' | 'profile' | 'permissions' | 'network' | 'workspace' | 'mcp';
 export function SettingsModal({ snapshot, invoke, onClose, notify, installs, onInstall, theme, onTheme, initialTab = 'members', initialEditing, initialFocus }: {
   snapshot: Snapshot; invoke: Invoke; onClose: () => void; notify: Notify;
   installs: Installs; onInstall: (provider: ProviderId, version: string | null) => void;
@@ -116,7 +118,7 @@ export function SettingsModal({ snapshot, invoke, onClose, notify, installs, onI
       notify(path ? `诊断记录已导出：${path}` : '诊断记录已导出。');
     } catch {}
   }
-  const tabs = [['members', '团队成员', <Users size={15} />], ['connections', '连接与版本', <Cable size={15} />], ['profile', '个人资料', <UserRound size={15} />], ['permissions', '权限', <ShieldCheck size={15} />], ['network', '网络', <Globe2 size={15} />], ['workspace', '工作台', <Folder size={15} />]] as const;
+  const tabs = [['members', '团队成员', <Users size={15} />], ['connections', '连接与版本', <Cable size={15} />], ['profile', '个人资料', <UserRound size={15} />], ['mcp', 'MCP 工具', <McpIcon size={15} />], ['permissions', '权限', <ShieldCheck size={15} />], ['network', '网络', <Globe2 size={15} />], ['workspace', '工作台', <Folder size={15} />]] as const;
   return <Modal title="设置与成员连接" subtitle="团队成员的人物卡、连接和版本，以及你自己的资料。" onClose={backupBusy?()=>{}:onClose} className="settings-modal">
     <div className="settings-layout">
       <nav className="settings-nav" aria-label="设置分类">
@@ -125,6 +127,7 @@ export function SettingsModal({ snapshot, invoke, onClose, notify, installs, onI
         <div className="settings-nav-note"><ShieldCheck size={16} /><span>登录由官方程序完成，工作台不复制订阅令牌。</span></div>
       </nav>
       <div className="settings-content">
+        {tab === 'mcp' && <McpSettings invoke={invoke} projects={snapshot.projects} projectId={initialTab === 'mcp' && initialFocus && snapshot.projects.some(project => project.id === initialFocus) ? initialFocus : undefined} />}
         {tab === 'members' && editing && <CardEditor key={editing} snapshot={snapshot} memberId={editing} invoke={invoke} notify={notify} onBack={() => setEditing(null)} onCancel={() => { setEditing(null); setTab(editOrigin); }} actionContainer={cardActions} initialExecutor={newExecutor} />}
         {tab === 'members' && !editing && <>
           <div className="settings-section-heading"><h3>团队成员</h3></div>
