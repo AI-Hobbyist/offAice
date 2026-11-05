@@ -1,6 +1,6 @@
 # Agent Handoff
 
-最新任务：项目会议审批交互对话框修复已完成并推送。当前绿色包与验证以文末“项目会议审批无法交互”记录为准，之前交付均是历史版本。最终文档提交以 git log 为准。
+最新任务：会议和单独对话的三种访问模式与长附件路径修复已完成并推送。当前绿色包及验证以文末“会议和单独对话访问模式”记录为准，之前交付均为历史版本。最终文档提交以 git log 为准。
 
 ## 当前任务最终状态
 
@@ -100,4 +100,4 @@ ZCode 暂不支持，其他 ACP 的 HTTP 需声明能力；旧 HTTP+SSE 不在�
 
 失败如实记录：首次整套回归的既有 Codex 清理测试 EBUSY 锁定 goals SQLite，单独重跑及最终整套均 PASS，未扩大修改清理逻辑。首次 Claude 测试未回答模型主动问题导致未写入，完善测试回答后实际读写 PASS；拒绝测试最初把原生 stopped 当作失败，修正预期并确认目标确实不存在后 PASS。
 
-当前 main；待提交/推送与最终绿色包验收。旧绿色包将保留为 pre-access-modes-*，本次没有修改用户原文件、项目报告或正在运行的 AIROOM 资料。无剩余功能实施；用户人工验收 MANUAL/PENDING。
+当前 main；实施提交 610c98e4f939f31ae6ed1d2ca292124721d1789d 已推送 origin/main。最终绿色包 release/AIROOM-0.1.0-Windows-x64-Green.zip，源提交为该提交，sourceDirty=false；大小 172649850 字节，SHA256 fc44decdbaec6fe9448a3e65e86a015b0de29f45d0faf1e74f78e10624203caf。7560 个文件解压哈希一致，171 个生产依赖校验 PASS；最终解压 AIROOM.exe 的真实 Windows 窗口完整 UI 回归 PASS，packaged=true、visible=true，会议/单独话题三种模式、审批、MCP 两种传输均通过，中文与布局正常。旧 ZIP/摘要/收据保留为 release/pre-access-modes-*。本次没有修改用户原文件、项目报告或正在运行的 AIROOM 资料；签名 NotSigned。无剩余实施，无实际阻碍；用户人工验收 MANUAL/PENDING。额度可靠接口 usedPercent=10，未触发交接。
