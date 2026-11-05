@@ -669,6 +669,9 @@ function McpEditor({
           />
         </label>
       </div>
+      <p className="mcp-muted">
+        超时用于连接测试和支持这些选项的执行端；其他执行端使用其原生超时。
+      </p>
       <p className="mcp-muted">已保存的密钥和参数以圆点显示，保留圆点即保留原值。</p>
       {error && (
         <p className="mcp-error" role="alert">

@@ -69,17 +69,23 @@ export function acpMcpServers(
 export function codexMcpConfig(
   ctx: AdapterContext,
   inherited: Record<string, unknown>,
-): Record<string, unknown> {
+): { mcp_servers: Record<string, unknown> } {
   const servers: Record<string, unknown> = Object.fromEntries(
-    Object.keys(inherited).map((name) => [name, { enabled: false }]),
+    [...new Set([...Object.keys(inherited), ...(ctx.session.nativeMcpServerNames ?? [])])].map(
+      (name) => [
+        name,
+        Object.hasOwn(inherited, name)
+          ? { enabled: false }
+          : { enabled: false, command: process.execPath },
+      ],
+    ),
   );
   for (const server of executableServers(ctx)) {
     // Codex deep-merges tables, including env = {}. A fresh name avoids retaining any native fields.
-    let name = server.name;
-    if (Object.hasOwn(inherited, name)) {
-      const suffix = createHash('sha256').update(name).digest('hex').slice(0, 8);
-      name = `offaice_${name.slice(0, 40)}_${suffix}`;
-      while (Object.hasOwn(inherited, name)) name += '_';
+    const suffix = createHash('sha256').update(JSON.stringify(server)).digest('hex').slice(0, 12);
+    let name = `offaice_${server.name.slice(0, 32)}_${suffix}`;
+    while (Object.hasOwn(inherited, name)) name += '_';
+    if (Object.hasOwn(inherited, server.name)) {
       ctx.emit(
         'status',
         `MCP ${server.name} 使用独立连接名称，避免继承原生同名配置。`,

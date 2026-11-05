@@ -1,4 +1,5 @@
-import { appendFileSync } from 'node:fs';
+import { appendFileSync, writeFileSync } from 'node:fs';
+import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 
 export function respond(message, receipt) {
@@ -53,6 +54,12 @@ export function respond(message, receipt) {
 }
 
 if (process.argv.includes('--stdio')) {
+  if (process.argv.includes('--child')) {
+    const child = spawn(process.execPath, ['-e', 'setInterval(() => {}, 10000)'], {
+      stdio: 'ignore',
+    });
+    writeFileSync(process.env.MCP_CHILD_PID_FILE, String(child.pid));
+  }
   const lines = createInterface({ input: process.stdin });
   lines.on('line', (line) => {
     const response = respond(JSON.parse(line), process.env.MCP_ECHO_RECEIPT);

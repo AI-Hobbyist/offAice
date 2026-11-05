@@ -1,5 +1,6 @@
 import { formatCorrectionSummary } from "./format-corrections";
 import { McpService } from './mcp/service';
+import { prepareAgentInstructions } from './agent-instructions';
 import { executeRun, type RunExecutionActive } from './run-execution';
 import {logoutProvider} from './provider-logout';
 import { discussionCallLimits } from "../shared/discussion-budget";
@@ -6513,6 +6514,16 @@ export class Engine {
       mcp: this.mcp.effective({ scope: 'project', projectId: project.id }),
       mcpProjectDirectory: project.directory,
       prepareMcp: () => this.mcp.prepare(ctx),
+      persistNativeMcpServers: names => {
+        const current = this.require<Session>('sessions', session.id);
+        if (JSON.stringify(current.nativeMcpServerNames) !== JSON.stringify(names)) {
+          this.store.put('sessions', session.id, { ...current, nativeMcpServerNames: names });
+        }
+        ctx.session.nativeMcpServerNames = names;
+      },
+      prepareInstructions: () => prepareAgentInstructions(
+        ctx, project.kind === 'lounge' ? this.projectRoomDirectory(project.roomId) : project.directory,
+      ),
       run,
       session,
       conversation: project.kind === 'lounge' ? 'room' : !session.purpose && !session.flowId && !run.flowOperationId && this.store.get('desk_session_links',session.id) ? 'desk' : undefined,

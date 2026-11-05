@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { instructionInput } from './agent-instructions';
 import type {
   Adapter, AdapterContext, Project, ProviderId, Run, Session, Settings, TimelineEvent,
 } from '../shared/types';
@@ -154,6 +155,7 @@ export async function executeRun(host: RunExecutionHost, active: RunExecutionAct
         return;
       }
     }
+    await ctx.prepareInstructions?.();
     await ctx.prepareMcp?.();
     if (active.stopping) throw new Error('任务已停止，未连接 MCP。');
     if (ctx.conversation) {
@@ -288,7 +290,7 @@ export async function executeRun(host: RunExecutionHost, active: RunExecutionAct
     const refreshContext = nativeContextNeedsRefresh(ctx.session, ctx.run.input.length)
       || ctx.session.nativePersona?.nativeId !== ctx.session.nativeId || ctx.session.nativePersona?.hash !== personaHash;
     if (refreshContext && ctx.session.nativeId) ctx.refreshInput?.();
-    const nativeInput = project.kind === 'lounge' ? ctx.run.input : prompt;
+    const nativeInput = instructionInput(ctx, project.kind === 'lounge' ? ctx.run.input : prompt);
     const start = () => active.adapter.start(ctx, nativeInput);
     if (
       project.kind === "lounge" &&

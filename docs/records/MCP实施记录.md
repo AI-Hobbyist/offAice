@@ -37,3 +37,16 @@
 - 补齐锁定版本 Electron 官方二进制后完成测试；测试等待正式 snapshot 就绪，不使用固定启动延时。退出改用正常 app.close，避免强退遗留后端。
 - 测试使用临时复制的生产依赖和独立、退出登录资料目录；没有修改用户日常配置。隔离测试缓存保留用于验证，不打包。
 - 用户新授权：M4 读取用户 .airoom/AGENTS.md 与项目 AGENTS.md，角色卡保持独立且优先。
+
+## M4 — 2026-11-05
+
+- M3 已提交/推送：744b6425661a34b8ad7dc994dbbbc0feb534022f，已核对远端 main。
+- 两级 AGENTS：用户 .airoom/AGENTS.md 与项目根 AGENTS.md；每轮完整快照，缺失/移除不沿用旧 AGENTS，角色卡保持独立和优先，运行时指纹覆盖变化。
+- 实际模型冲突验证：Codex/Claude/DSH 均返回角色卡身份和两级约定标记，没有采用 AGENTS 的冲突身份。回执 .test-cache/agents-model-1793882210801/receipt.json。
+- Codex 关闭隐式 codex_apps；受管理服务使用配置相关的独立名称，会话保存并显式禁用先前名称，禁用条目仍符合原生传输 schema。真实 stdio/HTTP 配置移除后清单均显示 disabled、tools=0；回执 .test-cache/mcp-codex-1793882828731/receipt.json。
+- JSON 同层重复键不再静默覆盖；无效根节点明确报错。新增 jsonc-parser 直接运行依赖用于语法树检查。
+- 13/13 自动测试 PASS；tsc --noEmit PASS；生产构建 PASS。覆盖错误导入原子性、项目隔离、凭据脱敏、显式信任、配置/凭据变化失效、权限过滤、401/403、超时、命令缺失、异常退出、取消、真实子进程树清理、原生配置隔离以及两级 AGENTS。
+- 候选目录通过 electron-builder 构建，171 个生产依赖清单验证。正常 Windows 临时目录内运行真正 AIROOM.exe，app.isPackaged=true、visible=true；完整 MCP UI 自动化 PASS。回执 .test-cache/mcp-ui/receipt.json，截图中文与布局正常。
+- 此候选目录用于阶段验收，manifest.sourceDirty=true，不作为最终交付。最终 ZIP 必须在本阶段提交/推送后重新从干净源生成。
+- 使用说明：docs/MCP与AGENTS使用说明.md。未扩展 ZCode 架构；其未核验接口状态明确显示，不宣称支持。
+- 人工验收：MANUAL/PENDING（可自主验证均已完成，不作为任务受阻条件）。

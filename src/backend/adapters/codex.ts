@@ -290,7 +290,19 @@ export class CodexAdapter implements Adapter {
       };
       const inRoom = context.run.projectId==='lounge' || Boolean(context.session.purpose?.startsWith('room-')) || context.roomRuntime;
       const inheritedMcp = await this.rpc.request('config/read', { includeLayers: false });
-      const toolConfig={...codexMcpConfig(context, inheritedMcp.config?.mcp_servers ?? {}),...codexToolConfig(context.settings.permissions.codex),...(inRoom?{'features.image_generation':context.run.imageGeneration===true&&context.settings.permissions.codex.network}:{} ),...(plainRoomSpeech(context)?{'features.shell_tool':false,'features.unified_exec':false,'features.multi_agent':false,'features.apps':false,'features.browser_use':false,'features.in_app_browser':false,web_search:'disabled'}:{}),...(roomFiles?{'features.shell_tool':true}:{})};
+      const toolConfig = {
+        // AIROOM configurations are explicit imports; do not implicitly connect account apps.
+        'features.apps': false,
+        ...codexMcpConfig(context, inheritedMcp.config?.mcp_servers ?? {}),
+        ...codexToolConfig(context.settings.permissions.codex),
+        ...(inRoom ? { 'features.image_generation': context.run.imageGeneration === true && context.settings.permissions.codex.network } : {}),
+        ...(plainRoomSpeech(context) ? {
+          'features.shell_tool': false, 'features.unified_exec': false, 'features.multi_agent': false,
+          'features.apps': false, 'features.browser_use': false, 'features.in_app_browser': false,
+          web_search: 'disabled',
+        } : {}),
+        ...(roomFiles ? { 'features.shell_tool': true } : {}),
+      };
       if(Object.keys(toolConfig).length)parameters.config=toolConfig;
       // Each image request gets its own native turn/context. Large image history is not replayed or persisted.
       // Validate choices against this running CLI's catalogue when it reports one.
@@ -314,6 +326,7 @@ export class CodexAdapter implements Adapter {
       if (result.thread?.modelProvider && result.thread.modelProvider !== 'openai') throw new Error('Codex 会话提供方不是 OpenAI；未发送任务。');
       if (typeof result.thread?.id !== 'string') throw new Error('Codex 未返回有效的原生会话 ID。');
       this.threadId = result.thread.id;
+      context.persistNativeMcpServers?.(Object.keys(toolConfig.mcp_servers));
       context.persistNativeSession(this.threadId!, connected.isolated ? 'airoom' : 'shared');
       context.recordConfig?.({source:'codex.thread',...(typeof result.model==='string'?{model:result.model,modelStatus:'reported'}:{}),...(typeof result.reasoningEffort==='string'?{effort:result.reasoningEffort,effortStatus:'reported'}:{})});
       if(selectedModel&&typeof result.model==='string'&&result.model!==selectedModel){context.recordConfig?.({modelStatus:'rejected',source:'codex.thread'});throw new Error('Codex 报告的实际模型与选择不同，任务尚未发送。');}

@@ -242,6 +242,7 @@ export interface RoomState { active: boolean; mode: 'chat' | 'meeting' | 'discus
   /** The member condensing a topic right now. */
   compressing?: string }
 export interface Session {
+  nativeMcpServerNames?: string[];
   executorIdentity?: import('./compatibility').ExecutorIdentity;
   id: string; projectId: string; provider: ProviderId; title: string; nativeId?: string; nativeHome?: 'shared' | 'airoom';
   roomId?: RoomId; roomThreadId?: string;
@@ -364,6 +365,9 @@ export interface AiroomBridge {
   pathForFile?(file: File): string;
 }
 export interface AdapterContext {
+  persistNativeMcpServers?(names: string[]): void;
+  agentInstructions?: string;
+  prepareInstructions?(): Promise<void>;
   mcp?: import('./mcp').McpEntry[];
   mcpProjectDirectory?: string;
   prepareMcp?(): Promise<void>;

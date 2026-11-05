@@ -113,6 +113,8 @@ try {
     })),
   );
   assert.ok(windows.some((window) => window.visible && window.bounds.width > 600));
+  const packaged = await app.evaluate(({ app }) => app.isPackaged);
+  if (process.env.AIROOM_REQUIRE_PACKAGED === '1') assert.equal(packaged, true);
   await page.screenshot({ path: path.join(results, 'mcp-settings.png') });
   await page.getByRole('button', { name: '关闭对话框', exact: true }).click();
   await page.getByRole('treeitem').filter({ hasText: 'MCP 验证项目' }).first().click({ button: 'right' });
@@ -126,7 +128,8 @@ try {
     JSON.stringify(
       {
         status: 'passed',
-        realWindows: windows,
+      realWindows: windows,
+      packaged,
         covered: [
           'import-preview-cancel',
           'import-apply',

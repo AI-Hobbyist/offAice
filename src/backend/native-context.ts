@@ -1,4 +1,5 @@
 import type { Session } from '../shared/types';
+import { AGENT_INSTRUCTION_PRIORITY } from './agent-instructions';
 
 // Bound how long identity, memory and room rules depend on native history alone.
 export const NATIVE_CONTEXT_REFRESH_TURNS = 4;
@@ -14,7 +15,7 @@ export function nativeContextNeedsRefresh(session: Session, inputChars = 0): boo
 }
 
 export function latestPersona(persona?: string): string {
-  return `[AIROOM 人物与记忆更新]\n${CURRENT_PERSONA_NOTICE}\n${persona || '当前没有额外人物设定或长期记忆。'}`;
+  return `[AIROOM 人物与记忆更新]\n${CURRENT_PERSONA_NOTICE}\n${AGENT_INSTRUCTION_PRIORITY}\n${persona || '当前没有额外人物设定或长期记忆。'}`;
 }
 
 /** Call only after a positively confirmed successful turn. Unknown results never advance it. */

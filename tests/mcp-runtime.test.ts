@@ -15,6 +15,7 @@ import { DEFAULT_SETTINGS } from '../src/shared/defaults';
 import type { AdapterContext } from '../src/shared/types';
 import { respond } from './fixtures/mcp-echo.mjs';
 import { nativeStdio } from '../src/backend/mcp/launch';
+import { setTimeout as delay } from 'node:timers/promises';
 
 function context(): AdapterContext {
   return {
@@ -51,7 +52,13 @@ test('native mappings preserve transports, disable inherited servers and enforce
   assert.equal((acpMcpServers(ctx, { mcpCapabilities: { http: true } })[0] as any).type, 'http');
   const config = codexMcpConfig(ctx, { old: { command: 'do-not-run' } }) as any;
   assert.equal(config.mcp_servers.old.enabled, false);
-  assert.equal(config.mcp_servers.echo.enabled, true);
+  const managedName = Object.keys(config.mcp_servers).find((name) =>
+    name.startsWith('offaice_echo_'),
+  )!;
+  assert.equal(config.mcp_servers[managedName].enabled, true);
+  ctx.session.nativeMcpServerNames = [managedName];
+  ctx.mcp = [];
+  assert.equal((codexMcpConfig(ctx, {}) as any).mcp_servers[managedName].enabled, false);
   for (const scenario of ['readonly', 'network', 'commands', 'workspace', 'room']) {
     const item = context();
     if (scenario === 'readonly') item.session.writeMode = false;
@@ -142,11 +149,93 @@ test('native stdio cwd helper runs the actual server in the selected directory',
   }
 });
 
+test('stdio startup failures, cancellation and descendant cleanup use real processes', async () => {
+  await assert.rejects(
+    connectMcp(
+      {
+        name: 'missing',
+        transport: 'stdio',
+        enabled: true,
+        command: path.resolve('.test-cache/does-not-exist.exe'),
+      },
+      process.cwd(),
+      process.env,
+    ),
+    /找不到/,
+  );
+  await assert.rejects(
+    connectMcp(
+      {
+        name: 'exit',
+        transport: 'stdio',
+        enabled: true,
+        command: process.execPath,
+        args: ['-e', 'process.exit(1)'],
+        startupTimeoutMs: 500,
+      },
+      process.cwd(),
+      process.env,
+    ),
+  );
+  const controller = new AbortController();
+  const pending = connectMcp(
+    {
+      name: 'hang',
+      transport: 'stdio',
+      enabled: true,
+      command: process.execPath,
+      args: ['-e', 'setInterval(() => {}, 1000)'],
+      startupTimeoutMs: 5000,
+    },
+    process.cwd(),
+    process.env,
+    controller.signal,
+  );
+  controller.abort();
+  await assert.rejects(pending);
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'offaice-mcp-child-'));
+  try {
+    const file = path.join(directory, 'pid.txt');
+    const connection = await connectMcp(
+      {
+        name: 'tree',
+        enabled: true,
+        transport: 'stdio',
+        command: process.execPath,
+        args: [path.resolve('tests/fixtures/mcp-echo.mjs'), '--stdio', '--child'],
+        env: { MCP_CHILD_PID_FILE: file },
+      },
+      directory,
+      process.env,
+    );
+    const pid = Number(await readFile(file, 'utf8'));
+    await connection.close();
+    let alive = true;
+    for (let attempt = 0; attempt < 20; attempt++) {
+      try {
+        process.kill(pid, 0);
+      } catch {
+        alive = false;
+        break;
+      }
+      await delay(25);
+    }
+    assert.equal(alive, false, 'MCP descendant survived connection shutdown');
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test('SDK HTTP handles JSON and SSE results plus authentication and startup timeout failures', async () => {
   const calls: string[] = [];
   const server = createServer(async (request, response) => {
     if (request.url === '/auth') {
       response.writeHead(401);
+      response.end();
+      return;
+    }
+    if (request.url === '/forbidden') {
+      response.writeHead(403);
       response.end();
       return;
     }
@@ -203,6 +292,14 @@ test('SDK HTTP handles JSON and SSE results plus authentication and startup time
         process.env,
       ),
       /401|Unauthorized/,
+    );
+    await assert.rejects(
+      connectMcp(
+        { name: 'echo', enabled: true, transport: 'http', url: url + '/forbidden' },
+        process.cwd(),
+        process.env,
+      ),
+      /403/,
     );
     await assert.rejects(
       connectMcp(

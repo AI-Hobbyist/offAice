@@ -63,7 +63,9 @@ const env = {
   AIROOM_DSH_HOME: path.join(home, 'dsh'),
 };
 try {
-  for (const transport of ['stdio', 'http'] as const) {
+  for (const transport of (process.argv.includes('--stdio-only')
+    ? ['stdio']
+    : ['stdio', 'http']) as ('stdio' | 'http')[]) {
     const nonce = randomUUID();
     const receipt = path.join(directory, `${transport}.jsonl`);
     let output = '';
@@ -83,6 +85,8 @@ try {
         autoApprove: false,
       } as Session,
       cwd: directory,
+      roomRuntime: process.argv.includes('--disable'),
+      conversation: process.argv.includes('--disable') ? 'desk' : undefined,
       env,
       settings,
       mcp: [
@@ -116,6 +120,9 @@ try {
       persistNativeSession(id) {
         ctx.session.nativeId = id;
         ctx.session.nativeHome = 'airoom';
+      },
+      persistNativeMcpServers(names) {
+        ctx.session.nativeMcpServerNames = names;
       },
       markDelivery() {},
       registerProcess() {},
@@ -167,6 +174,38 @@ try {
         } else assert.ok(receipts.some((value: any) => value.arguments?.text === resumedMarker));
         console.log(`${provider} ${transport}: resumed model -> MCP -> model PASS`);
       }
+      if (process.argv.includes('--disable') && provider === 'codex') {
+        ctx.mcp = [];
+        output = '';
+        const disabledMarker = 'MCP_DISABLED_' + randomUUID();
+        const disabled = await adapter.start(
+          ctx,
+          `If echotest echo is available call it with text "unexpected-call". Otherwise reply only ${disabledMarker}. Do not use any other tools.`,
+        );
+        assert.ok(!disabled.stopped && !disabled.unknown && !disabled.failure);
+        const rpc = Reflect.get(adapter, 'rpc');
+        assert.ok(rpc, 'The real runtime was not retained for inventory verification');
+        const inventory = await rpc.request('mcpServerStatus/list', {
+          threadId: ctx.session.nativeId,
+        });
+        console.log(
+          JSON.stringify({
+            managedNames: ctx.session.nativeMcpServerNames,
+            inventory: inventory.data.map((server: any) => ({
+              name: server.name,
+              status: server.runtimeStatus,
+              tools: Object.keys(server.tools ?? {}).length,
+            })),
+          }),
+        );
+        assert.ok(
+          inventory.data.every((server: any) => Object.keys(server.tools ?? {}).length === 0),
+        );
+        assert.ok(output.includes(disabledMarker));
+        console.log(
+          `${provider} ${transport}: changed configuration removed old native tools PASS`,
+        );
+      }
     } finally {
       clearTimeout(timeout);
       await adapter.dispose?.();
@@ -175,7 +214,12 @@ try {
   }
   await writeFile(
     path.join(directory, 'receipt.json'),
-    JSON.stringify({ provider, stdio: 'passed', http: 'passed', at: new Date().toISOString() }),
+    JSON.stringify({
+      provider,
+      stdio: 'passed',
+      http: process.argv.includes('--stdio-only') ? 'not-run' : 'passed',
+      at: new Date().toISOString(),
+    }),
   );
   console.log(`Receipt: ${directory}`);
 } finally {

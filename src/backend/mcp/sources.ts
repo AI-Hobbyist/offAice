@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { parse } from 'smol-toml';
+import { parseTree, type Node, type ParseError } from 'jsonc-parser';
 import type { McpEntry, McpScope, McpServer, McpSource } from '../../shared/mcp';
 import { validateServer } from './config';
 
@@ -18,6 +19,25 @@ export interface SourceInput {
   source: McpSource;
   file?: string;
   format?: 'json' | 'toml';
+}
+
+function parseJsonConfig(text: string): unknown {
+  const errors: ParseError[] = [];
+  const root = parseTree(text, errors, { disallowComments: true, allowTrailingComma: false });
+  if (!root || errors.length) throw new Error('JSON 格式无效。');
+  function check(node: Node) {
+    if (node.type === 'object') {
+      const keys = new Set<string>();
+      for (const property of node.children ?? []) {
+        const name = String(property.children![0].value);
+        if (keys.has(name)) throw new Error(`重复配置键名：${name}`);
+        keys.add(name);
+      }
+    }
+    for (const child of node.children ?? []) check(child);
+  }
+  check(root);
+  return JSON.parse(text);
 }
 
 /** A read-only import. No CLI is launched and no source file is modified. */
@@ -40,11 +60,17 @@ export async function readMcpSource(
     let data: any;
     try {
       const text = (await readFile(file, 'utf8')).replace(/^\uFEFF/, '');
-      data = format === 'toml' ? parse(text) : JSON.parse(text);
+      data = format === 'toml' ? parse(text) : parseJsonConfig(text);
       files.push(file);
     } catch (error) {
       if (optional && (error as NodeJS.ErrnoException).code === 'ENOENT') return;
-      issues.push(`无法读取配置文件：${file}`);
+      issues.push(
+        `无法读取配置文件：${file}${(error as Error).message.startsWith('重复配置键名：') ? `（${(error as Error).message}）` : ''}`,
+      );
+      return;
+    }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      issues.push(`${file}：配置根节点必须是对象。`);
       return;
     }
     const servers = pick(data);
