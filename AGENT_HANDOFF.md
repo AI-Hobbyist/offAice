@@ -1,6 +1,6 @@
 # Agent Handoff
 
-最新任务：会议和单独对话的三种访问模式与长附件路径修复已完成并推送。当前绿色包及验证以文末“会议和单独对话访问模式”记录为准，之前交付均为历史版本。最终文档提交以 git log 为准。
+最新任务：个人资料自我介绍及上下文接入已完成并推送。当前绿色包与验证以文末“个人资料自我介绍”记录为准；之前交付均为历史版本。最终文档提交以 git log 为准。
 
 ## 当前任务最终状态
 
@@ -108,4 +108,4 @@ ZCode 暂不支持，其他 ACP 的 HTTP 需声明能力；旧 HTTP+SSE 不在�
 
 20/20 回归、tsc、生产构建 PASS。新测试覆盖持久化、修剪空白、角色卡保留、只改名字保留介绍、超长拒绝且不写入、清空后不再注入。真实 Windows UI 保存/关闭/重开 PASS，中文与布局正常，截图 .test-cache/mcp-ui/profile-introduction.png；原 MCP、会议授权、审批与访问模式回归一并 PASS。本轮未进行真实模型调用，验证的是持久化和实际上下文组装入口。
 
-当前 main；待提交/推送与最终绿色包验收。上一版将保留为 pre-profile-introduction-*。无剩余功能实施；用户人工验收 MANUAL/PENDING。额度可靠接口 usedPercent=11，未触发交接。
+当前 main；实施提交 b9fac5bc698c81e4e6b5b968eb48c35cfffdae35 已推送 origin/main。最终绿色包 release/AIROOM-0.1.0-Windows-x64-Green.zip，源提交为该提交，sourceDirty=false；172650210 字节，SHA256 7c697628914f9cb234b7bdafe01102d7dbb609ede03b4bbcce4cd74536cb1b30。7560 个解压文件哈希一致，171 个生产依赖校验 PASS。最终解压 AIROOM.exe 的真实 Windows UI 回归 PASS，packaged=true、visible=true，自我介绍保存/重开正常，中文和布局已检查。旧 ZIP/摘要/收据保留为 release/pre-profile-introduction-*。签名 NotSigned。本轮未改用户已有资料；无剩余实施，无实际阻碍；用户人工验收 MANUAL/PENDING。额度可靠接口 usedPercent=11，未触发交接。
