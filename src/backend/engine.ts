@@ -3650,7 +3650,14 @@ export class Engine {
           /^[a-f0-9-]{8,64}\.(png|jpe?g|webp|gif)$/i.test(given.avatar)
             ? given.avatar
             : undefined;
-        const profile: UserProfile = { name, ...(avatar ? { avatar } : {}) };
+        const introduction = given.introduction ?? this.store.profile().introduction ?? '';
+        if (typeof introduction !== 'string' || introduction.length > 8000)
+          throw new Error('自我介绍须为不超过 8000 字的文本。');
+        const profile: UserProfile = {
+          name,
+          ...(avatar ? { avatar } : {}),
+          ...(introduction.trim() ? { introduction: introduction.trim() } : {}),
+        };
         this.store.put("profile", "main", profile);
         await this.roomRuntimes.invalidate();
         this.broadcast();

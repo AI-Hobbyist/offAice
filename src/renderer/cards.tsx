@@ -254,9 +254,16 @@ export function ProfileSettings({ snapshot, invoke }: { snapshot: Snapshot; invo
       <UserAvatar name={profile.name || '我'} avatar={profile.avatar} size={84} />
       <div className="profile-fields">
         <label className="field">你的名字<input value={profile.name} maxLength={40} onChange={event => setProfile(previous => ({ ...previous, name: event.target.value }))} placeholder="填写你的昵称" /><small>显示在你的消息旁；没有单独设置称呼的成员会这样叫你。</small></label>
-        <div className="card-image-actions"><button type="button" className="button small secondary" onClick={() => void pick()}><ImagePlus size={13} />{profile.avatar ? '更换头像' : '上传头像'}</button>{profile.avatar && <button type="button" className="button small quiet" onClick={() => setProfile(previous => ({ name: previous.name }))}>移除头像</button>}</div>
+        <div className="card-image-actions"><button type="button" className="button small secondary" onClick={() => void pick()}><ImagePlus size={13} />{profile.avatar ? '更换头像' : '上传头像'}</button>{profile.avatar && <button type="button" className="button small quiet" onClick={() => setProfile(previous => ({ ...previous, avatar: undefined }))}>移除头像</button>}</div>
       </div>
     </div>
+    <label className="field">自我介绍
+      <textarea aria-label="自我介绍" rows={5} maxLength={8000}
+        value={profile.introduction ?? ''}
+        onChange={event => setProfile(previous => ({ ...previous, introduction: event.target.value }))}
+        placeholder="介绍你的背景、关注的领域、习惯或希望成员了解的事。" />
+      <small>保存后从下一轮对话起作为用户背景提供给成员，适用于会议和单独对话；不替换角色卡或改变权限。最多 8000 字，清空并保存可移除。</small>
+    </label>
     <div className="panel-section-title">大家会这样称呼你</div>
     <div className="address-list">{team.members.map(member => <div key={member.id} className={`address-row member-${member.id}`}><Avatar member={member} size={28} /><span><strong>{member.name}</strong>：「{member.userTitle || (profile.name && profile.name !== '你' ? profile.name : '你')}」</span></div>)}</div>
     <div className="profile-actions"><button type="button" className="button primary" disabled={!profile.name.trim() || busy} onClick={() => void save()}>{busy ? <LoaderCircle size={14} className="spin" /> : <Save size={14} />}保存个人资料</button></div>

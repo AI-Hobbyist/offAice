@@ -72,6 +72,30 @@ try {
     await window.airoom.invoke('project.update', { projectId, memberIds: [member.id] });
   }, project.id);
   await page.getByRole('button', { name: '设置与连接', exact: true }).click();
+  await page.getByRole('button', { name: '个人资料', exact: true }).click();
+  const introduction = '我是开发者，主要使用中文交流。PROFILE_UI_MARKER';
+  await page.getByLabel('自我介绍', { exact: true }).fill(introduction);
+  await page.getByRole('button', { name: '保存个人资料', exact: true }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        window.airoom.invoke('snapshot').then((snapshot) => snapshot.profile.introduction),
+      ),
+    )
+    .toBe(introduction);
+  await page.getByRole('button', { name: '关闭对话框', exact: true }).click();
+  await page.getByRole('button', { name: '设置与连接', exact: true }).click();
+  await page.getByRole('button', { name: '个人资料', exact: true }).click();
+  await expect(page.getByLabel('自我介绍', { exact: true })).toHaveValue(introduction);
+  await page.getByRole('dialog').evaluate(async (node) => {
+    await Promise.all(
+      node.parentElement
+        .getAnimations({ subtree: true })
+        .filter((animation) => animation.effect.getTiming().iterations !== Infinity)
+        .map((animation) => animation.finished),
+    );
+  });
+  await page.screenshot({ path: path.join(results, 'profile-introduction.png') });
   await page.getByRole('button', { name: 'MCP 工具', exact: true }).click();
   const panel = page.getByRole('region', { name: 'MCP 配置', exact: true });
   await panel.getByLabel('默认 MCP 导入来源', { exact: true }).selectOption('file');
@@ -190,6 +214,7 @@ try {
           'meeting-mcp-authorize-revoke',
           'meeting-approval-dialog-answer-reopen',
           'conversation-access-modes',
+          'profile-introduction-save-reopen',
         ],
         at: new Date().toISOString(),
       },

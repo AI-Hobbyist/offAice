@@ -101,3 +101,11 @@ ZCode 暂不支持，其他 ACP 的 HTTP 需声明能力；旧 HTTP+SSE 不在�
 失败如实记录：首次整套回归的既有 Codex 清理测试 EBUSY 锁定 goals SQLite，单独重跑及最终整套均 PASS，未扩大修改清理逻辑。首次 Claude 测试未回答模型主动问题导致未写入，完善测试回答后实际读写 PASS；拒绝测试最初把原生 stopped 当作失败，修正预期并确认目标确实不存在后 PASS。
 
 当前 main；实施提交 610c98e4f939f31ae6ed1d2ca292124721d1789d 已推送 origin/main。最终绿色包 release/AIROOM-0.1.0-Windows-x64-Green.zip，源提交为该提交，sourceDirty=false；大小 172649850 字节，SHA256 fc44decdbaec6fe9448a3e65e86a015b0de29f45d0faf1e74f78e10624203caf。7560 个文件解压哈希一致，171 个生产依赖校验 PASS；最终解压 AIROOM.exe 的真实 Windows 窗口完整 UI 回归 PASS，packaged=true、visible=true，会议/单独话题三种模式、审批、MCP 两种传输均通过，中文与布局正常。旧 ZIP/摘要/收据保留为 release/pre-access-modes-*。本次没有修改用户原文件、项目报告或正在运行的 AIROOM 资料；签名 NotSigned。无剩余实施，无实际阻碍；用户人工验收 MANUAL/PENDING。额度可靠接口 usedPercent=10，未触发交接。
+
+## 2026-11-05：个人资料自我介绍（实施验证完成）
+
+用户要求个人资料加入自我介绍并引入上下文。新增可选 UserProfile.introduction，个人资料文本框最多 8000 字；保存后持久化，清空移除，旧资料无字段时兼容。通过现有 personaInstructions 统一把介绍作为用户背景加入会议、工位及成员任务上下文，保留角色卡原文与称呼，不改变权限。复用 profile.save 既有运行时失效机制，下一轮使用最新信息；仅修改名字的旧调用保留介绍，头像移除改为保留其他字段，防止误删介绍。
+
+20/20 回归、tsc、生产构建 PASS。新测试覆盖持久化、修剪空白、角色卡保留、只改名字保留介绍、超长拒绝且不写入、清空后不再注入。真实 Windows UI 保存/关闭/重开 PASS，中文与布局正常，截图 .test-cache/mcp-ui/profile-introduction.png；原 MCP、会议授权、审批与访问模式回归一并 PASS。本轮未进行真实模型调用，验证的是持久化和实际上下文组装入口。
+
+当前 main；待提交/推送与最终绿色包验收。上一版将保留为 pre-profile-introduction-*。无剩余功能实施；用户人工验收 MANUAL/PENDING。额度可靠接口 usedPercent=11，未触发交接。

@@ -173,7 +173,7 @@ export interface MemberProfile {
 }
 /** The identity attached to historical conversations after a card is deleted; no live persona or model settings. */
 export type MemberIdentity = Pick<MemberProfile,'id'|'executor'|'name'|'color'|'portrait'|'avatar'|'portraitScale'|'portraitOffset'|'face'|'avatarFace'|'builtIn'>;
-export interface UserProfile { name: string; avatar?: string }
+export interface UserProfile { name: string; avatar?: string; introduction?: string }
 /** A room note about project work. It opens the session; the note reporting how a run ended also carries the user's decision. */
 export interface RoomLink { projectId: string; sessionId: string; runId?: string;
   /** File edits from this run were undone in its work copy. */
