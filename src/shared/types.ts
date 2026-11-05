@@ -224,6 +224,7 @@ export interface RoomSummary { text: string; by: string; byName?: string; at: st
   /** Things about the user the summarizer thought worth remembering; they wait for the user to accept or dismiss them. */
   proposals?: string[] }
 export interface RoomThread {
+  accessMode?: import('./access-mode').AccessMode;
   /** Explicit permission for external MCP in this project meeting; native tools stay read-only. */
   mcpEnabled?: boolean;
   id: string; title: string; createdAt: string; archivedAt?: string;
@@ -367,6 +368,7 @@ export interface AiroomBridge {
   pathForFile?(file: File): string;
 }
 export interface AdapterContext {
+  accessMode?: import('./access-mode').AccessMode;
   roomMcpEnabled?: boolean;
   persistNativeMcpServers?(names: string[]): void;
   agentInstructions?: string;

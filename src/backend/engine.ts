@@ -1,5 +1,6 @@
 import { formatCorrectionSummary } from "./format-corrections";
 import { McpService } from './mcp/service';
+import { isAccessMode } from '../shared/access-mode';
 import { prepareAgentInstructions } from './agent-instructions';
 import { executeRun, type RunExecutionActive } from './run-execution';
 import {logoutProvider} from './provider-logout';
@@ -790,6 +791,7 @@ export class Engine {
       },
       projectFiles: () => this.projectRoomDirectory(roomId),
       mcpEnabled: () => this.store.currentRoomThread(roomId).mcpEnabled === true,
+      accessMode: () => this.store.currentRoomThread(roomId).accessMode,
       interruptAndWait: () =>
         this.rooms.run(roomId, async () => {
           const running = this.roomRunning;
@@ -2639,6 +2641,29 @@ export class Engine {
     return this.providers;
   }
   async invoke(method: string, params: any = {}): Promise<unknown> {
+    if (method === 'room.access.save') {
+      if (this.maintenance) throw new Error('正在备份或恢复资料，请稍后更改权限。');
+      const roomId = this.store.validateRoomId(params.roomId ?? 'global');
+      if (roomId !== 'global' && !roomId.startsWith('project:') && !roomId.startsWith('desk:'))
+        throw new Error('此页面不支持更改对话访问模式。');
+      if (!isAccessMode(params.mode) || params.confirm !== true) throw new Error('请确认访问模式。');
+      const thread = this.store.currentRoomThread(roomId);
+      if (this.store.roomState(roomId).active || this.store.list<Run>('runs').some(run => {
+        const session = this.store.get<Session>('sessions', run.sessionId);
+        const link = session && this.store.get<{ id: string }>('desk_session_links', session.id);
+        return (session?.roomThreadId === thread.id || link?.id === thread.id)
+          && ['queued', 'running', 'waiting_user', 'stopping'].includes(run.status);
+      })) throw new Error('请先结束当前运行再更改访问模式。');
+      this.store.put('room_threads', thread.id, { ...thread, accessMode: params.mode });
+      await this.roomRuntimes.invalidate(key => {
+        const session = this.store.get<Session>('sessions', key);
+        return session?.roomThreadId === thread.id
+          || this.store.get<{ id: string }>('desk_session_links', key)?.id === thread.id;
+      });
+      this.store.put('room_states', roomId, { ...this.store.roomState(roomId) });
+      this.broadcast();
+      return { mode: params.mode };
+    }
     if (method.startsWith('mcp.')) {
       if (this.maintenance) throw new Error('正在备份或恢复资料，请等完成后再操作 MCP。');
       if (method === 'mcp.test') return this.mcp.test(params, buildEnvironment(this.settings));
@@ -6535,6 +6560,27 @@ export class Engine {
         ? project.roomId.slice(8)
         : project.id;
     const mcpProject = this.require<Project>('projects', boundProjectId);
+    const deskLink = this.store.get<{ id: string }>('desk_session_links', session.id);
+    const conversationThreadId = session.roomThreadId ?? deskLink?.id;
+    const accessMode = !run.imageGeneration && !run.flowOperationId && !session.flowId
+      && (!session.purpose || session.purpose === 'room-mention')
+      && (project.kind === 'lounge' || deskLink)
+      ? this.store.get<RoomThread>('room_threads', conversationThreadId ?? '')?.accessMode
+      : undefined;
+    if (accessMode && run.provider !== 'deepseek') {
+      if (!['codex', 'claude', 'dsh'].includes(run.provider))
+        throw new Error('此执行端尚未支持对话访问模式，请使用 Codex、Claude 或 DSH。');
+      runSettings.permissions = {
+        ...runSettings.permissions,
+        [run.provider]: {
+          ...runSettings.permissions[run.provider],
+          commands: accessMode === 'ask' ? 'ask' : 'auto',
+          fileScope: accessMode === 'full' ? 'any' : 'workspace',
+        },
+      };
+    }
+    if (accessMode && run.provider === 'deepseek')
+      throw new Error('DeepSeek API 保持只读审查；对话访问模式需要使用 DSH 或其他已支持的执行端。');
     const roomMcpEnabled =
       project.kind === 'lounge'
       && Boolean(this.projectRoomDirectory(project.roomId))
@@ -6543,6 +6589,7 @@ export class Engine {
       && !run.flowOperationId
       && (!session.purpose || session.purpose === 'room-mention');
     const ctx: AdapterContext = {
+      accessMode,
       roomMcpEnabled,
       mcp: this.mcp.effective({ scope: 'project', projectId: mcpProject.id }),
       mcpProjectDirectory: mcpProject.directory,
@@ -6558,7 +6605,7 @@ export class Engine {
         ctx, project.kind === 'lounge' ? this.projectRoomDirectory(project.roomId) : project.directory,
       ),
       run,
-      session,
+      session: accessMode ? { ...session, writeMode: true, autoApprove: accessMode === 'full' } : session,
       conversation: project.kind === 'lounge' ? 'room' : !session.purpose && !session.flowId && !run.flowOperationId && this.store.get('desk_session_links',session.id) ? 'desk' : undefined,
       roomProjectDirectory: project.kind === "lounge" ? this.projectRoomDirectory(project.roomId) : undefined,
       settings: runSettings,
@@ -6575,7 +6622,9 @@ export class Engine {
             })),
           }
         : {}),
-      cwd: session.workspace || project.directory,
+      cwd: accessMode && project.kind === 'lounge'
+        ? this.projectRoomDirectory(project.roomId) ?? project.directory
+        : session.workspace || project.directory,
       env: buildEnvironment(this.settings),
       deepseekKey: this.key,
       emit: (kind, text, data, fidelity) => {
@@ -6905,9 +6954,9 @@ export class Engine {
       approval.type === "approval" &&
       approval.allowChoice &&
       approval.options.some((x) => x.id === approval.allowChoice)
-        ? session?.autoApprove
+        ? (ctx.accessMode ? ctx.accessMode === 'full' : session?.autoApprove)
           ? "本会话全部自动批准"
-          : approval.category &&
+          : !ctx.accessMode && approval.category &&
               session?.approvalRules?.includes(approval.category)
             ? `本会话允许此类：${approval.categoryLabel || approval.category}`
             : undefined

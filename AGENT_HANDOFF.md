@@ -87,3 +87,17 @@ ZCode 暂不支持，其他 ACP 的 HTTP 需声明能力；旧 HTTP+SSE 不在�
 真实窗口回归先运行已发布 88cc247 程序，等待 MCP 确认对话框 5 秒超时（RED）。修复后真实 Windows 窗口 PASS：自动弹出、关闭、待处理重开、信任并启用提交 allow、结构化问题选择和答案提交。新增 fixtures/approval-window.mjs 用固定 snapshot 和独立 preload 驱动真实生产 renderer，不连接真实账号、不调用模型，不冒称后端端到端验证。初次结构化问题 fixture 继承了 answered 状态，修正为 pending 后 PASS。原有 MCP 设置 stdio/HTTP 真实连接与会议授权/撤销一并 PASS。tsc、生产构建 PASS。最终包还将等待动画稳定后检查截图。
 
 本轮只修改 renderer 审批入口、UI 测试与说明，不改变后端信任/审批规则。当前 main，修复提交 9e7255f9063af6b42db031e83bc2eda6c5d83e63 已推送。绿色包 release/AIROOM-0.1.0-Windows-x64-Green.zip，源提交为该提交，sourceDirty=false；172647824 字节，SHA256 ecfcc50007429e92558d75fd8cc6bd4807eda21bba26aa82d7a8c240b2b1e8cf。最终解压 AIROOM.exe 实际窗口验收 PASS，packaged=true、visible=true；审批固定数据回归 PASS，动画完成后截图中文/布局正常。7560 个文件哈希一致，171 个生产依赖校验通过。旧包/摘要/收据保存为 release/pre-approval-dialog-*。签名 NotSigned，本轮没有真实模型调用；之前后端/模型验证仍为历史记录。用户人工验收 MANUAL/PENDING，无剩余实施，无实际阻碍。额度接口 usedPercent=9，未触发交接。
+
+## 2026-11-05：会议和单独对话访问模式（用户明确扩展授权，验证完成）
+
+用户先选择“同时开放逐次确认的读写授权”，随后要求参考 Codex，提供“请求批准 / 帮我批准 / 完全访问”，范围包括会议和单独对话。按该授权增加 RoomThread.accessMode 与统一选择器，按当前话题保存，旧话题未选择时保留原权限；运行中禁止切换并清理对应运行时。正常会议/工位上下文使用所选模式，辅助轮次与项目流程不继承。会议工作目录改为绑定的真实项目目录；原始 Session.writeMode 不被重分类为流程写任务。模式进入运行时指纹。
+
+请求批准：Codex read-only + untrusted，可批准单次命令/写入；不再自动拒绝。Claude/DSH 的请求文件操作走原审批窗口。帮我批准：workspace-write/工作目录自动处理，越界仍询问，Claude 没有命令沙箱所以命令仍审批。完全访问：any/danger-full-access，后端自动使用原生允许选项，问题仍保留由人回答。旧自动批准规则不覆盖显式 ask/auto 模式。支持 Codex/Claude/DSH，其他执行端明确报未支持，DeepSeek API 保持只读。工位的 MCP 在显式访问模式下仍要通过独立服务信任，不被工作区规则静默过滤；会议 MCP 仍单独开关。
+
+附件根因另已证实：截图约 33KB 的附件超过 TEXT_INLINE_MAX=30000；原会议 paths=false 导致既没有正文也没有路径。现在提供 AIROOM 保存副本路径，长附件可以按访问模式读取，不提升内联阈值。
+
+验证：19/19 回归测试 PASS；tsc/生产构建 PASS。会议/工位真实窗口三种模式保存切换、MCP 授权/撤销、审批弹窗及结构化回答 PASS，中文与布局正常。测试截图 .test-cache/mcp-ui/meeting-access.png、desk-access.png。真实账号均使用隔离官方登录目录：Codex ask/auto/full 读取工作目录外随机 nonce 文件并真实写出 PASS（审批 2/1/0）；Claude 三模式 PASS（审批/问题 3/1/1，full 后端自动批准另有 Engine 测试）；DSH 三模式 PASS（审批 2/1/0）。Codex 拒绝审批后目标不存在 PASS。记录在 build-access-*.log 与 .test-cache/access-*。
+
+失败如实记录：首次整套回归的既有 Codex 清理测试 EBUSY 锁定 goals SQLite，单独重跑及最终整套均 PASS，未扩大修改清理逻辑。首次 Claude 测试未回答模型主动问题导致未写入，完善测试回答后实际读写 PASS；拒绝测试最初把原生 stopped 当作失败，修正预期并确认目标确实不存在后 PASS。
+
+当前 main；待提交/推送与最终绿色包验收。旧绿色包将保留为 pre-access-modes-*，本次没有修改用户原文件、项目报告或正在运行的 AIROOM 资料。无剩余功能实施；用户人工验收 MANUAL/PENDING。

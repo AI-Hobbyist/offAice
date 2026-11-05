@@ -42,6 +42,7 @@ export const RENDERER_METHODS: readonly string[] = [
   'projectRoom.ensure',
   'room.get',
   'room.mcp.save',
+  'room.access.save',
   'room.send',
   'room.stop',
   'room.pause',

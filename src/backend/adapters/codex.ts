@@ -27,10 +27,15 @@ export function codexModelOptions(response: unknown): ModelOption[] {
 }
 
 /** Map the member's adjustable permissions onto codex-cli 0.160 app-server values. */
-export function codexSessionPolicy(permissions: MemberPermissions, writeMode: boolean, autoApprove=false) {
+export function codexSessionPolicy(
+  permissions: MemberPermissions,
+  writeMode: boolean,
+  autoApprove = false,
+  accessMode?: AdapterContext['accessMode'],
+) {
   // on-request: commands run inside the sandbox and only escalations ask; untrusted: anything not known-safe asks.
   const approvalPolicy = autoApprove&&writeMode&&permissions.commands==='auto'&&permissions.fileScope==='any' ? 'never' : permissions.commands === 'auto' ? 'on-request' : 'untrusted';
-  const sandbox = !writeMode ? 'read-only' : permissions.fileScope === 'any' ? 'danger-full-access' : 'workspace-write';
+  const sandbox = !writeMode || accessMode === 'ask' ? 'read-only' : permissions.fileScope === 'any' ? 'danger-full-access' : 'workspace-write';
   const sandboxPolicy = sandbox === 'read-only' ? { type: 'readOnly', networkAccess: permissions.network }
     : sandbox === 'danger-full-access' ? { type: 'dangerFullAccess' }
     : { type: 'workspaceWrite', writableRoots: [] as string[], networkAccess: permissions.network };
@@ -257,7 +262,7 @@ export class CodexAdapter implements Adapter {
       if(context.session.nativeId&&context.session.nativeHome==='shared')throw new Error('旧会话绑定桌面端共享目录；请新建 AIROOM 独立会话，旧记录仍可查看。');
       const command = resolveCli('codex', context.settings, env);
       if(!reuse){const version=await collectCommand(command,['--version'],env,context.cwd);if(version.code!==0)throw new Error('Codex CLI 版本检查失败，任务尚未发送。');}
-      const policy = codexSessionPolicy(context.settings.permissions.codex, context.session.writeMode,context.session.autoApprove);
+      const policy = codexSessionPolicy(context.settings.permissions.codex, context.session.writeMode,context.session.autoApprove,context.accessMode);
       // Project rooms read files through the shell: read-only sandbox, only known-safe commands run, every ask is declined.
       const roomFiles = roomProjectFiles(context);
       if (roomFiles) Object.assign(policy, { approvalPolicy: 'untrusted', sandbox: 'read-only', declineCommands: true });
@@ -505,7 +510,8 @@ export class CodexAdapter implements Adapter {
     if(message.method==='item/fileChange/requestApproval'&&!context.session.writeMode)return {decision:'decline'};
     if (message.method === 'item/commandExecution/requestApproval' || message.method === 'item/fileChange/requestApproval') {
       const item = this.items.get(params.itemId) ?? {};
-      const available = Array.isArray(params.availableDecisions) ? params.availableDecisions.filter((value: unknown) => typeof value === 'string') : ['accept', 'acceptForSession', 'decline', 'cancel'];
+      const decisions = Array.isArray(params.availableDecisions) ? params.availableDecisions.filter((value: unknown) => typeof value === 'string') : ['accept', 'acceptForSession', 'decline', 'cancel'];
+      const available = context.accessMode === 'ask' ? decisions.filter((value: string) => value !== 'acceptForSession') : decisions;
       const labels: Record<string, string> = { accept: '允许这次', acceptForSession: '本会话允许', decline: '拒绝这次', cancel: '取消' };
       const reply = await context.approve({ type: 'approval', title: message.method.includes('commandExecution') ? 'Codex 请求执行操作' : 'Codex 请求修改文件', detail: [params.reason, params.command ?? item.command, params.cwd ?? item.cwd, item.changes ? describe(item.changes) : undefined].filter(Boolean).join('\n'), options: available.map((id: string) => ({ id, label: labels[id] ?? id })),
         allowChoice: available.includes('accept') ? 'accept' : undefined, denyChoice: available.includes('decline') ? 'decline' : available.includes('cancel') ? 'cancel' : undefined,

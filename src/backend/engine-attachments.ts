@@ -14,7 +14,7 @@ export class EngineAttachments {
     const seesImages=this.acceptsImages(member.executor);
     // History can contain many files; bound pictures and describe each omitted one.
     const images=seesImages?files.filter(item=>item.kind==='image'&&item.size<=IMAGE_SEND_MAX).slice(-ATTACHMENTS_MAX).map(withoutPath):[];
-    return {text:describeAttachments(files,{images:seesImages,paths:false,source:'room',imageIds:new Set(images.map(item=>item.id))}),images};
+    return {text:describeAttachments(files,{images:seesImages,paths:true,source:'room',imageIds:new Set(images.map(item=>item.id))}),images};
   }
 
   release(ids?:Iterable<string>){

@@ -10,7 +10,7 @@ export function mcpRestriction(ctx: AdapterContext): string | undefined {
   const room = ctx.conversation === 'room' || ctx.session.purpose?.startsWith('room-');
   if (room && !ctx.roomMcpEnabled) return '本会议尚未授权外部 MCP。';
   const permissions = ctx.settings.permissions[ctx.run.provider];
-  if (room && ctx.roomMcpEnabled) {
+  if ((room && ctx.roomMcpEnabled) || (ctx.conversation === 'desk' && ctx.accessMode)) {
     if (!permissions?.network) return '禁止联网时不启动外部 MCP（stdio 服务也可能联网）。';
     return;
   }

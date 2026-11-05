@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createServer } from 'node:http';
-import { _electron as electron } from '@playwright/test';
+import { _electron as electron, expect } from '@playwright/test';
 import { respond } from './fixtures/mcp-echo.mjs';
 import { verifyMeetingApproval } from './fixtures/approval-window.mjs';
 
@@ -150,6 +150,22 @@ try {
   await page.screenshot({ path: path.join(results, 'mcp-meeting.png') });
   await meetingMcp.click();
   await page.getByText('MCP 未授权', { exact: true }).waitFor();
+  const accessMode = page.getByLabel('对话访问模式', { exact: true });
+  for (const mode of ['ask', 'auto', 'full']) {
+    await accessMode.selectOption(mode);
+    await expect(accessMode).toHaveValue(mode);
+  }
+  await page.screenshot({ path: path.join(results, 'meeting-access.png') });
+  await page.evaluate(async () => {
+    const snapshot = await window.airoom.invoke('snapshot');
+    await window.airoom.invoke('desk.topic', { memberId: snapshot.members[0].id });
+  });
+  await page.getByRole('button', { name: 'MCP 验证成员 的工位', exact: true }).click();
+  for (const mode of ['ask', 'auto', 'full']) {
+    await accessMode.selectOption(mode);
+    await expect(accessMode).toHaveValue(mode);
+  }
+  await page.screenshot({ path: path.join(results, 'desk-access.png') });
   await verifyMeetingApproval(app, page, project, results);
   assert.deepEqual(errors, []);
   const snapshot = await page.evaluate(() => window.airoom.invoke('mcp.list', { scope: 'global' }));
@@ -173,6 +189,7 @@ try {
           'project-direct-entry',
           'meeting-mcp-authorize-revoke',
           'meeting-approval-dialog-answer-reopen',
+          'conversation-access-modes',
         ],
         at: new Date().toISOString(),
       },

@@ -201,6 +201,15 @@ class ClaudePermissionHost {
     }
     if (kind !== 'permission') throw new Error('不支持的审批请求类型。');
     const permissions = context.settings.permissions.claude;
+    if (context.accessMode === 'ask' && ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(toolName)) {
+      const answer = await context.approve({
+        type: 'approval', title: `Claude 请求使用 ${toolName}`, detail: describe(input),
+        options: [{ id: 'allow', label: '允许这次' }, { id: 'deny', label: '拒绝这次' }],
+        allowChoice: 'allow', denyChoice: 'deny', category: 'file', categoryLabel: '文件访问',
+      });
+      return this.active && this.generation === generation && answer.choice === 'allow'
+        ? { behavior: 'allow', updatedInput: input } : { behavior: 'deny', message: '用户未授权本次文件访问。' };
+    }
     if (['Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(toolName)) {
       if (!context.session.writeMode) return { behavior: 'deny', message: '当前会话为只读模式，未授权修改文件。' };
       if (permissions.fileScope === 'any') return { behavior: 'allow', updatedInput: input };
@@ -210,7 +219,10 @@ class ClaudePermissionHost {
         const target = isAbsolute(file) ? resolve(file) : resolve(context.cwd, file);
         resolveSafePath(context.cwd, relative(context.cwd, target));
         return { behavior: 'allow', updatedInput: input };
-      } catch { return { behavior: 'deny', message: '文件不在该任务授权的工作区内。' }; }
+      } catch {
+        if (!context.accessMode) return { behavior: 'deny', message: '文件不在该任务授权的工作区内。' };
+        // Conversation auto mode still asks before touching a file outside its workspace.
+      }
     }
     if (toolName === 'mcp__airoom__ask_user') return { behavior: 'allow', updatedInput: input };
     if (toolName === 'Bash' && (permissions.commands === 'deny' || !permissions.network || !context.session.writeMode)) return { behavior: 'deny', message: '当前权限设置不允许执行命令；禁网时关闭无网络隔离的命令工具。' };

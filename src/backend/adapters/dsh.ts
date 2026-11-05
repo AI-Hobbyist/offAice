@@ -135,7 +135,7 @@ export const DSH_GUARD_SOURCE = [
   "    if (requested && requested !== config.sandboxMode) return 'AIROOM: widening the session sandbox is disabled';",
   "    if (config.fileScope === 'any') return; // anything else, including a missing value, keeps the workspace boundary",
   "    const denied = checkPath(exec.name, exec.arguments, config.workspaceRoot, path, fs);",
-  "    if (denied && !readRoot(exec.name, exec.arguments, config.readRoots, checkPath, path, fs)) return denied;",
+  "    if (denied && !config.approvalScoped && !readRoot(exec.name, exec.arguments, config.readRoots, checkPath, path, fs)) return denied;",
   "    if (['read','read_image','glob','grep','write','edit'].includes(exec.name)) {",
   "      try {",
   "        const actual = exec.agent?.session?.header?.cwd;",
@@ -144,10 +144,13 @@ export const DSH_GUARD_SOURCE = [
   "    }",
   "  });",
   "  // DSH only asks when a command leaves its sandbox; 'ask' means every command waits for the user.",
-  "  if (config.commands === 'ask') ctx.on('tools/pre-execute', async (exec, next) => {",
+  "  if (config.commands === 'ask' || config.approvalScoped) ctx.on('tools/pre-execute', async (exec, next) => {",
   "    const decision = await next();",
-  "    if (decision.kind !== 'allow' || !['pwsh', 'bash'].includes(exec.name)) return decision;",
-  "    return { kind: 'ask', reason: 'AIROOM: every command needs approval', displayReason: { en: 'Run this command?', 'zh-CN': '执行这条命令需要你确认' } };",
+  "    if (decision.kind !== 'allow') return decision;",
+  "    const file = ['read','read_image','glob','grep','write','edit','str_replace_editor'].includes(exec.name);",
+  "    const outside = file && checkPath(exec.name, exec.arguments, config.workspaceRoot, path, fs);",
+  "    if (!(config.commands === 'ask' && ['pwsh','bash'].includes(exec.name)) && !(file && config.approvalScoped && (config.requestFiles || outside))) return decision;",
+  "    return { kind: 'ask', reason: 'AIROOM: approval required for this operation', displayReason: { en: 'Allow this operation?', 'zh-CN': '本次操作需要你确认' } };",
   "  });",
   "  ctx.on('agent/created', ({agent}) => {",
   "    const deny = ctx.tools.schemas(agent).map(tool => tool.name).filter(name => toolDenied(name, config));",
@@ -170,7 +173,7 @@ export function buildDshEnvironment(base: NodeJS.ProcessEnv, home: string, write
   return env;
 }
 
-export function buildDshPatch(settings: Settings, cwd: string, writeMode: boolean, guardFile: string, persona?: string, readRoots: string[] = []) {
+export function buildDshPatch(settings: Settings, cwd: string, writeMode: boolean, guardFile: string, persona?: string, readRoots: string[] = [], accessMode?: AdapterContext['accessMode']) {
   const base = new URL(settings.deepseekBaseUrl);
   if (base.origin !== 'https://api.deepseek.com' || !['/','/anthropic','/anthropic/'].includes(base.pathname) || base.username || base.password || base.search || base.hash) throw new Error('第一版 DSH 仅允许 DeepSeek 官方 HTTPS 服务地址，避免把密钥发送到未确认的主机。');
   const endpoint = base.toString().replace(/\/$/, '') + (/\/anthropic\/?$/.test(base.pathname) ? '' : '/anthropic');
@@ -195,7 +198,7 @@ export function buildDshPatch(settings: Settings, cwd: string, writeMode: boolea
     {id:'deepseek-account',config:{platformOrigin:'https://platform.deepseek.com',inferenceOrigin:'https://api.deepseek.com',desktopPlatform:null}},
     {id:'llm-deepseek-account', disabled:false, config:{baseURL:endpoint}},
     {id:'acp', config:{provider:'deepseek-account', model:dshModelSelection(settings.models.dsh).model}},
-    {insert:[{id:'airoom-policy', name:pathToFileURL(guardFile).href, config:{...policy, workspaceRoot:cwd, readRoots}}]},
+    {insert:[{id:'airoom-policy', name:pathToFileURL(guardFile).href, config:{...policy, workspaceRoot:cwd, readRoots, approvalScoped: accessMode === 'ask' || accessMode === 'auto', requestFiles: accessMode === 'ask'}}]},
   ];
 }
 
@@ -361,7 +364,7 @@ export class DshAdapter implements Adapter {
     });
   }
 
-  private async prepare(file:string, settings:Settings, env:NodeJS.ProcessEnv, cwd:string, writeMode:boolean, persona?:string, readRoots:string[]=[]) {
+  private async prepare(file:string, settings:Settings, env:NodeJS.ProcessEnv, cwd:string, writeMode:boolean, persona?:string, readRoots:string[]=[], accessMode?:AdapterContext['accessMode']) {
     const home = this.home(env); const name = this.profile(settings);
     await mkdir(home, {recursive:true});
     const isolated = buildDshEnvironment(env,home,writeMode,env.DEEPSEEK_API_KEY,dshSessionPolicy(settings.permissions.dsh,writeMode).sandboxMode);
@@ -389,7 +392,7 @@ export class DshAdapter implements Adapter {
     }
     const patches = path.join(home,'launch-patches'); await mkdir(patches,{recursive:true});
     const patchFile = path.join(patches,randomUUID()+'.json');
-    await writeFile(patchFile,JSON.stringify(buildDshPatch(settings,cwd,writeMode,guard,persona,readRoots),null,2),{encoding:'utf8',mode:0o600});
+    await writeFile(patchFile,JSON.stringify(buildDshPatch(settings,cwd,writeMode,guard,persona,readRoots,accessMode),null,2),{encoding:'utf8',mode:0o600});
     return {home,name,env:isolated,patchFile};
   }
 
@@ -448,11 +451,12 @@ export class DshAdapter implements Adapter {
       const reply = (optionId?:string) => {if(connection===this.rpc&&connection?.isOpen)connection.send({jsonrpc:'2.0',id:packet.id,result:{outcome:optionId ? {outcome:'selected',optionId} : {outcome:'cancelled'}}});};
       if (!this.context || this.stopped || params.sessionId !== this.sessionId) {reply();return;}
       const roomFiles = roomProjectFiles(this.context), readRoots = roomFiles ? [roomFiles] : [];
-      const reason = dshPermissionDenial(name,args,dshSessionPolicy(this.context.settings.permissions.dsh,this.context.session.writeMode),this.context.cwd,readRoots);
+      const policy = dshSessionPolicy(this.context.settings.permissions.dsh,this.context.session.writeMode);
+      const reason = dshPermissionDenial(name,args,this.context.accessMode ? { ...policy, fileScope: 'any' } : policy,this.context.cwd,readRoots);
       if (reason) {this.context.emit('warning','DSH 权限请求已拒绝：'+reason,undefined,'derived');reply(deny?.optionId);return;}
       // Reading the meeting room's own project needs no separate approval.
       const allowOnce = options.find(option => option.kind === 'allow_once');
-      if (allowOnce && dshReadRootAllowed(name,args,readRoots)) {reply(allowOnce.optionId);return;}
+      if (!this.context.accessMode && allowOnce && dshReadRootAllowed(name,args,readRoots)) {reply(allowOnce.optionId);return;}
       const context = this.context;
       const answer = await context.approve({type:'approval',title:name+' 请求本次操作许可',detail:JSON.stringify(args,null,2),options:options.filter(option=>['allow_once','reject_once'].includes(option.kind)).map(option=>({id:option.optionId,label:option.kind==='allow_once'?'仅允许这次':'拒绝'})),
         allowChoice:options.find(option=>option.kind==='allow_once')?.optionId,denyChoice:options.find(option=>option.kind==='reject_once')?.optionId,
@@ -468,9 +472,9 @@ export class DshAdapter implements Adapter {
     }
   }
 
-  private async launch(settings:Settings, env:NodeJS.ProcessEnv, cwd:string, writeMode:boolean, register?:(child:ChildProcess)=>void, persona?:string, readRoots:string[]=[]) {
+  private async launch(settings:Settings, env:NodeJS.ProcessEnv, cwd:string, writeMode:boolean, register?:(child:ChildProcess)=>void, persona?:string, readRoots:string[]=[], accessMode?:AdapterContext['accessMode']) {
     const file = await this.command(settings);
-    const prepared = await this.prepare(file,settings,env,cwd,writeMode,persona,readRoots);
+    const prepared = await this.prepare(file,settings,env,cwd,writeMode,persona,readRoots,accessMode);
     const runner = this.runner(file,prepared.env);
     this.stderr='';this.sessionId=undefined;this.toolCalls.clear();this.promptSent=false;this.promptAcknowledged=false;this.sessionClosed=false;this.terminal=undefined;
     this.retiredTurns.clear();
@@ -551,7 +555,7 @@ export class DshAdapter implements Adapter {
       }
       ctx.recordTiming?.('preflight');
       if (this.stopped) return {stopped:true};
-      if (!reuse) await this.launch(ctx.settings,env,ctx.cwd,ctx.session.writeMode,child=>ctx.registerProcess(child),ctx.persona,roomProjectFiles(ctx)?[roomProjectFiles(ctx)!]:[]);
+      if (!reuse) await this.launch(ctx.settings,env,ctx.cwd,ctx.session.writeMode,child=>ctx.registerProcess(child),ctx.persona,roomProjectFiles(ctx)?[roomProjectFiles(ctx)!]:[],ctx.accessMode);
       this.stamp=stamp;this.reusable=true;this.sessionClosed=false;
       if (this.stopped) return {stopped:true};
       const mcpServers = acpMcpServers(ctx, this.mcpCapabilities);
